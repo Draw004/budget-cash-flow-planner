@@ -3,6 +3,7 @@
 
   const L = window.CarrowmontLocale;
   const S = window.CarrowmontBudgetStorage;
+  const SS = window.CarrowmontSmartSuggestions;
   const byId = id => document.getElementById(id);
   const clamp = (n,a,b)=>Math.min(b,Math.max(a,n));
   const num = (v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
@@ -22,7 +23,7 @@
   };
 
   const DEFAULTS = {
-    view:'monthly', month:isoMonth(today), primaryPayFrequency:'monthly', nextPayday:'', availableCash:0,
+    view:'monthly', month:isoMonth(today), primaryPayFrequency:'monthly', nextPayday:'', availableCash:0, smartScenario:'balanced',
     emergencyCurrent:180000, emergencyTargetMonths:6, priority:'emergency', monthNote:'', monthExceptional:false,
     incomes:[
       {id:uid(),name:'Salary / wages',amount:120000,frequency:'monthly'}
@@ -56,7 +57,7 @@
     moneyRemaining:byId('moneyRemaining'), remainingNote:byId('remainingNote'), cashflowHero:byId('cashflowHero'), monthlyIncome:byId('monthlyIncome'), essentialTotal:byId('essentialTotal'), flexibleTotal:byId('flexibleTotal'), savingTotal:byId('savingTotal'), reserveTotal:byId('reserveTotal'), savingsRate:byId('savingsRate'), safeWeekly:byId('safeWeekly'), safeDaily:byId('safeDaily'),
     nextPaydayDisplay:byId('nextPaydayDisplay'), cycleIncome:byId('cycleIncome'), cycleEssential:byId('cycleEssential'), cycleSavings:byId('cycleSavings'), cycleRoom:byId('cycleRoom'), upcomingBills:byId('upcomingBills'), cashAfterBills:byId('cashAfterBills'),
     coverageRing:byId('coverageRing'), coverageMonths:byId('coverageMonths'), coverageHeading:byId('coverageHeading'), coverageText:byId('coverageText'),
-    insightGrid:byId('insightGrid'), historyRange:byId('historyRange'), historyTableBody:byId('historyTableBody'), trendChart:byId('trendChart'), saveStatus:byId('saveStatus')
+    insightGrid:byId('insightGrid'), smartContext:byId('smartContext'), smartScenarioPanel:byId('smartScenarioPanel'), smartScenarioAmount:byId('smartScenarioAmount'), smartScenarioText:byId('smartScenarioText'), smartPriorityConnection:byId('smartPriorityConnection'), smartAllocationPanel:byId('smartAllocationPanel'), smartAllocationAmount:byId('smartAllocationAmount'), smartAllocationText:byId('smartAllocationText'), smartProtectedNote:byId('smartProtectedNote'), historyRange:byId('historyRange'), historyTableBody:byId('historyTableBody'), trendChart:byId('trendChart'), saveStatus:byId('saveStatus')
   };
 
   function escapeHtml(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
@@ -79,6 +80,7 @@
     const s={...structuredClone(DEFAULTS),...(raw||{})};
     ['incomes','essential','flexible','savings'].forEach(k=>{if(!Array.isArray(s[k]))s[k]=[];s[k]=s[k].map(r=>({...r,id:r.id||uid()}));});
     if(!/^\d{4}-\d{2}$/.test(s.month||''))s.month=isoMonth(today);
+    if(!['low','balanced','aggressive'].includes(s.smartScenario))s.smartScenario='balanced';
     return s;
   }
   function defaultNextPayday(freq){
@@ -169,31 +171,53 @@
     else{els.coverageHeading.textContent='Gap to your selected target';els.coverageText.textContent=`About ${money(c.emergencyGap)} more would reach the ${num(state.emergencyTargetMonths).toFixed(0)}-month target under the current essential-expense estimate.`;}
   }
 
-  function baselineHistory(){return history.filter(h=>!h.monthExceptional);}
-  function averageRecent(field,months=3){const arr=baselineHistory().slice(-months);if(!arr.length)return null;return arr.reduce((s,h)=>s+num(h.summary?.[field]),0)/arr.length;}
-  function categoryBaseline(kind,name,months=3){
-    const arr=baselineHistory().slice(-months);const vals=[];
-    arr.forEach(h=>{const rows=h[kind]||[];const r=rows.find(x=>String(x.name).trim().toLowerCase()===String(name).trim().toLowerCase()&&!x.exceptional);if(r)vals.push(monthlyEquivalent(r.amount,r.frequency));});
-    return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
-  }
-  function insights(){
-    const c=calculate(); const out=[];
-    if(c.remaining<0)out.push({type:'critical',kicker:'CASH-FLOW PRESSURE',title:`Planned outflows exceed income by ${money(Math.abs(c.remaining))}.`,body:'This is a planning signal rather than a judgement. Review timing, one-time items and adjustable categories to decide whether the shortfall is temporary or recurring.'});
-    else out.push({type:'positive',kicker:'FREE CASH FLOW',title:`${money(c.remaining)} remains unassigned this month.`,body:`You can leave this as a buffer or direct some toward your selected priority: ${priorityLabel(state.priority)}.`});
-    if(c.essential>0&&num(state.emergencyTargetMonths)>0){
-      if(c.emergencyGap>0)out.push({type:'',kicker:'EMERGENCY RESERVE',title:`Your reserve covers about ${c.coverage.toFixed(1)} months of essentials.`,body:`Against your own ${num(state.emergencyTargetMonths).toFixed(0)}-month target, the modelled gap is ${money(c.emergencyGap)}.`});
-      else out.push({type:'positive',kicker:'EMERGENCY RESERVE',title:`Your selected ${num(state.emergencyTargetMonths).toFixed(0)}-month target is covered.`,body:`The current reserve equals about ${c.coverage.toFixed(1)} months of the essential expenses entered here.`});
-    }
-    const avgFlex=averageRecent('flexible',3); if(avgFlex!==null&&avgFlex>0){const change=(c.flexible-avgFlex)/avgFlex*100;if(change>10)out.push({type:'warning',kicker:'SPENDING TREND',title:`Flexible spending is ${change.toFixed(0)}% above the recent non-exceptional average.`,body:`Current flexible spending is ${money(c.flexible)} versus a recent average of about ${money(avgFlex)}. Check whether the change reflects a deliberate choice or a new recurring pattern.`});}
-    let candidate=null;
-    state.flexible.filter(r=>!r.protected&&!r.exceptional).forEach(r=>{const b=categoryBaseline('flexible',r.name,3);const cur=monthlyEquivalent(r.amount,r.frequency);if(b!==null&&b>0&&cur>b*1.15){const increase=cur-b;if(!candidate||increase>candidate.increase)candidate={r,b,cur,increase};}});
-    if(candidate)out.push({type:'warning',kicker:'CATEGORY CHANGE',title:`${candidate.r.name} is about ${money(candidate.increase)} above its recent baseline.`,body:`The current monthly equivalent is ${money(candidate.cur)} versus a recent non-exceptional average near ${money(candidate.b)}. This category is not protected, so it is a reasonable place to review before changing essential spending.`});
-    const avgSave=averageRecent('saving',3);if(avgSave!==null){const delta=c.saving-avgSave;if(Math.abs(delta)>=Math.max(500,avgSave*.08))out.push({type:delta>0?'positive':'warning',kicker:'SAVINGS TREND',title:`Planned saving is ${delta>0?'up':'down'} ${money(Math.abs(delta))} versus the recent average.`,body:`Current planned savings and investments total ${money(c.saving)} per month. The recent non-exceptional average was about ${money(avgSave)}.`});}
-    if(c.reserves>0)out.push({type:'',kicker:'IRREGULAR BILLS',title:`${money(c.reserves)} per month is reserved for quarterly or annual bills.`,body:'This amount is already included in the expense totals. Treating irregular bills as monthly reserves helps avoid a seemingly “surprise” expense when the actual bill arrives.'});
-    return out.slice(0,6);
-  }
   function priorityLabel(v){return ({buffer:'cash buffer',emergency:'emergency reserve',debt:'debt reduction',goal:'a life goal',investment:'recurring investment',retirement:'retirement',fi:'financial independence'})[v]||'your selected priority';}
-  function renderInsights(){const arr=insights();els.insightGrid.innerHTML=arr.map(x=>`<article class="insight-card ${x.type||''}"><div class="insight-kicker">${escapeHtml(x.kicker)}</div><h3>${escapeHtml(x.title)}</h3><p>${escapeHtml(x.body)}</p></article>`).join('');}
+  function investmentToolName(){return L.getRegion()==='IN'?'SIP Calculator':'Recurring Investment Calculator';}
+  function smartAnalysis(){
+    if(!SS||typeof SS.analyze!=='function')return null;
+    return SS.analyze({state:structuredClone(state),history:structuredClone(history),summary:calculate()});
+  }
+  function smartPresentation(analysis=smartAnalysis()){
+    if(!analysis||!SS||typeof SS.present!=='function')return null;
+    return SS.present(analysis,{money,scenario:state.smartScenario,investmentLabel:investmentToolName()});
+  }
+  function renderInsights(){
+    const analysis=smartAnalysis();
+    const view=smartPresentation(analysis);
+    if(!analysis||!view){
+      els.insightGrid.innerHTML='<article class="insight-card"><div class="insight-kicker">SMART SUGGESTIONS</div><h3>Suggestions are temporarily unavailable.</h3><p>Your budget calculations still work normally.</p></article>';
+      if(els.smartContext)els.smartContext.textContent='The local suggestion engine could not be loaded.';
+      if(els.smartScenarioPanel)els.smartScenarioPanel.classList.add('hidden');
+      return;
+    }
+    if(els.smartContext)els.smartContext.textContent=view.contextText;
+    els.insightGrid.innerHTML=view.primary.map(x=>`<article class="insight-card ${x.type||''}" data-smart-kind="${escapeHtml(x.kind)}"><div class="insight-kicker">${escapeHtml(x.kicker)}</div><h3>${escapeHtml(x.title)}</h3><p>${escapeHtml(x.body)}</p><div class="insight-meta">${escapeHtml(x.meta)}</div></article>`).join('');
+    if(!view.primary.length)els.insightGrid.innerHTML='<article class="insight-card"><div class="insight-kicker">SMART SUGGESTIONS</div><h3>No additional signal is needed right now.</h3><p>Keep saving normal months to build a stronger comparison history.</p></article>';
+    const scenario=view.scenario;
+    if(els.smartScenarioPanel){
+      els.smartScenarioPanel.classList.toggle('hidden',!scenario);
+      document.querySelectorAll('[data-smart-scenario]').forEach(btn=>{
+        const active=btn.dataset.smartScenario===state.smartScenario;
+        btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',active?'true':'false');
+      });
+      if(scenario){
+        els.smartScenarioAmount.textContent=`${money(scenario.amount)} / month · ${money(scenario.annualAmount)} / year`;
+        els.smartScenarioText.textContent=scenario.text;
+        const link=scenario.relatedTool?` <a href="${escapeHtml(scenario.relatedTool.href)}">Open ${escapeHtml(scenario.relatedTool.label)} →</a>`:'';
+        els.smartPriorityConnection.innerHTML=`<strong>Selected priority: ${escapeHtml(priorityLabel(state.priority))}</strong><span>${escapeHtml(scenario.priorityText)}${link}</span>`;
+      }
+    }
+    if(els.smartAllocationPanel){
+      const allocation=view.allocation;
+      els.smartAllocationPanel.classList.toggle('hidden',!allocation);
+      if(allocation){
+        els.smartAllocationAmount.textContent=`${money(allocation.amount)} / month`;
+        const link=allocation.relatedTool?` <a href="${escapeHtml(allocation.relatedTool.href)}">Open ${escapeHtml(allocation.relatedTool.label)} →</a>`:'';
+        els.smartAllocationText.innerHTML=`${escapeHtml(allocation.text)}${link}`;
+      }
+    }
+    if(els.smartProtectedNote)els.smartProtectedNote.textContent=view.protectedText;
+  }
 
   function summarySnapshot(){const c=calculate();return {income:c.income,essential:c.essential,flexible:c.flexible,saving:c.saving,reserves:c.reserves,remaining:c.remaining,savingsRate:c.savingsRate,coverage:c.coverage};}
   function snapshot(){return {...structuredClone(state),summary:summarySnapshot(),savedAt:new Date().toISOString(),region:L.getRegion(),currency:L.getCurrency()};}
@@ -224,7 +248,7 @@
     els.budgetMonth.value=state.month;els.primaryPayFrequency.value=state.primaryPayFrequency;els.nextPayday.value=state.nextPayday||'';els.availableCash.value=num(state.availableCash);els.emergencyCurrent.value=num(state.emergencyCurrent);els.emergencyTargetMonths.value=num(state.emergencyTargetMonths);els.priority.value=state.priority;els.monthNote.value=state.monthNote||'';els.monthExceptional.checked=!!state.monthExceptional;
     document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===state.view));document.querySelectorAll('.paycycle-only').forEach(el=>el.classList.toggle('hidden',state.view!=='paycycle'));
   }
-  function savePrefs(){S.savePreferences({view:state.view,month:state.month,primaryPayFrequency:state.primaryPayFrequency,nextPayday:state.nextPayday,availableCash:state.availableCash,emergencyCurrent:state.emergencyCurrent,emergencyTargetMonths:state.emergencyTargetMonths,priority:state.priority,monthNote:state.monthNote,monthExceptional:state.monthExceptional,incomes:state.incomes,essential:state.essential,flexible:state.flexible,savings:state.savings});}
+  function savePrefs(){S.savePreferences({view:state.view,month:state.month,primaryPayFrequency:state.primaryPayFrequency,nextPayday:state.nextPayday,availableCash:state.availableCash,emergencyCurrent:state.emergencyCurrent,emergencyTargetMonths:state.emergencyTargetMonths,priority:state.priority,smartScenario:state.smartScenario,monthNote:state.monthNote,monthExceptional:state.monthExceptional,incomes:state.incomes,essential:state.essential,flexible:state.flexible,savings:state.savings});}
   function updateRow(target,rerender=false){
     const row=target.closest('.entry-row');if(!row)return;const kind=row.dataset.kind,id=row.dataset.id;const collection=kind==='income'?state.incomes:kind==='essential'?state.essential:kind==='flexible'?state.flexible:state.savings;const item=collection.find(x=>x.id===id);if(!item)return;const f=target.dataset.field;if(!f)return;if(target.type==='checkbox')item[f]=target.checked;else if(f==='amount')item[f]=Math.max(0,num(target.value));else item[f]=target.value;
     const eq=row.querySelector('[data-monthly-equivalent]');if(eq)eq.value=money(monthlyEquivalent(item.amount,item.frequency));
@@ -246,7 +270,7 @@
     `Monthly income: ${money(c.income)}`,`Essential expenses: ${money(c.essential)}`,`Flexible expenses: ${money(c.flexible)}`,`Savings & investments: ${money(c.saving)}`,`Irregular-bill reserves: ${money(c.reserves)}`,`Money remaining: ${money(c.remaining)}`,`Savings rate: ${c.savingsRate.toFixed(1)}%`,`Emergency reserve coverage: ${c.coverage.toFixed(1)} months`,`Selected emergency target: ${num(state.emergencyTargetMonths).toFixed(0)} months`,'','Educational planning illustration. Not individualized financial advice.'
   ];navigator.clipboard?.writeText(lines.join('\n')).then(()=>toast('Summary copied.')).catch(()=>toast('Could not copy automatically.'));}
 
-  function reportModel(){const c=calculate();return {generatedAt:new Date(),region:L.getRegion(),country:L.getProfile().label,currency:L.getCurrency(),month:state.month,state:structuredClone(state),summary:c,insights:insights(),history:history.slice(-12)};}
+  function reportModel(){const c=calculate();const smart=smartAnalysis();return {generatedAt:new Date(),region:L.getRegion(),country:L.getProfile().label,currency:L.getCurrency(),month:state.month,state:structuredClone(state),summary:c,smartSuggestions:smart,history:history.slice(-12)};}
   async function generateReport(){try{const R=window.CarrowmontBudgetPdfRenderer;if(!R)throw new Error('Budget report renderer is unavailable.');await R.download(reportModel());const st=byId('reportDownloadStatus');if(st)st.textContent='Report has been downloaded.';toast('Budget report generated.');}catch(err){console.error(err);toast('Could not generate the report.');}}
 
   async function saveCurrentMonth(){try{state.month=els.budgetMonth.value||state.month;await S.saveMonth(snapshot());els.saveStatus.textContent=`Saved ${state.month} on this device.`;await refreshHistory();toast('Month saved locally.');}catch(err){console.error(err);els.saveStatus.textContent='Could not save this month.';}}
@@ -255,7 +279,7 @@
   function bindEvents(){
     document.addEventListener('input',e=>{if(e.target.closest('.entry-row'))return updateRow(e.target,false);const id=e.target.id;if(id==='availableCash')state.availableCash=num(e.target.value);else if(id==='emergencyCurrent')state.emergencyCurrent=Math.max(0,num(e.target.value));else if(id==='emergencyTargetMonths')state.emergencyTargetMonths=clamp(num(e.target.value),0,36);else if(id==='monthNote')state.monthNote=e.target.value;else return;renderAll();savePrefs();});
     document.addEventListener('change',e=>{if(e.target.closest('.entry-row'))return updateRow(e.target,e.target.dataset.field==='frequency');const id=e.target.id;if(id==='budgetMonth'){loadMonthIfSaved(e.target.value);return;}if(id==='primaryPayFrequency'){state.primaryPayFrequency=e.target.value;if(!state.nextPayday){state.nextPayday=defaultNextPayday(state.primaryPayFrequency);els.nextPayday.value=state.nextPayday;}}else if(id==='nextPayday')state.nextPayday=e.target.value;else if(id==='priority')state.priority=e.target.value;else if(id==='monthExceptional')state.monthExceptional=e.target.checked;else if(id==='historyRange'){renderHistory();return;}else return;renderAll();savePrefs();});
-    document.addEventListener('click',e=>{const add=e.target.closest('.add-row');if(add){addRow(add.dataset.kind);return;}const del=e.target.closest('.delete-row');if(del){deleteRow(del);return;}const hist=e.target.closest('[data-delete-month]');if(hist){if(confirm(`Delete saved month ${hist.dataset.deleteMonth}?`))S.deleteMonth(hist.dataset.deleteMonth).then(refreshHistory);return;}});
+    document.addEventListener('click',e=>{const scenario=e.target.closest('[data-smart-scenario]');if(scenario){state.smartScenario=scenario.dataset.smartScenario;renderInsights();savePrefs();return;}const add=e.target.closest('.add-row');if(add){addRow(add.dataset.kind);return;}const del=e.target.closest('.delete-row');if(del){deleteRow(del);return;}const hist=e.target.closest('[data-delete-month]');if(hist){if(confirm(`Delete saved month ${hist.dataset.deleteMonth}?`))S.deleteMonth(hist.dataset.deleteMonth).then(refreshHistory);return;}});
     document.querySelectorAll('.view-btn').forEach(btn=>btn.addEventListener('click',()=>{state.view=btn.dataset.view;syncInputsFromState();renderAll();savePrefs();}));
     byId('saveMonthBtn').addEventListener('click',saveCurrentMonth);byId('refreshHistoryBtn').addEventListener('click',refreshHistory);byId('copyBtn').addEventListener('click',copySummary);byId('reportBtn').addEventListener('click',generateReport);
     byId('exportBtn').addEventListener('click',async()=>{try{downloadJson(await S.exportAll(),`carrowmont-budget-backup-${isoMonth(new Date())}.json`);toast('Budget backup exported.');}catch(err){console.error(err);toast('Could not export budget data.');}});

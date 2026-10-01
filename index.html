@@ -16,7 +16,7 @@
   <meta name="twitter:card" content="summary" />
   <meta name="theme-color" content="#0e827a" />
   <link rel="stylesheet" href="styles.css?v=20261002.ui1" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Carrowmont Budget & Cash Flow Planner","url":"https://carrowmont.com/budget-cash-flow-planner/","applicationCategory":"FinanceApplication","operatingSystem":"Any","description":"A privacy-first educational budget and cash-flow planning tool with monthly and pay-cycle views, local history and deterministic insights."}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Carrowmont Budget & Cash Flow Planner","url":"https://carrowmont.com/budget-cash-flow-planner/","applicationCategory":"FinanceApplication","operatingSystem":"Any","description":"A privacy-first educational budget and cash-flow planning tool with monthly and pay-cycle views, local history and deterministic Smart Suggestions."}</script>
 </head>
 <body>
 <header class="site-header">
@@ -30,7 +30,7 @@
       <nav class="top-nav" aria-label="Primary navigation">
         <a href="#planner">Planner</a>
         <a href="#history">History</a>
-        <a href="#insights">Insights</a>
+        <a href="#insights">Smart Suggestions</a>
         <a href="#methodology">Methodology</a>
         <a href="/#tools">All tools</a>
         <a href="/">Home</a>
@@ -187,8 +187,29 @@
 
 <section class="insights-section" id="insights">
   <div class="container">
-    <div class="section-heading-row"><div><div class="eyebrow">BUDGET INTELLIGENCE</div><h2>What the numbers are telling you</h2><p>These are deterministic observations based on your entries and saved history. They are not individualized financial advice.</p></div></div>
+    <div class="section-heading-row"><div><div class="eyebrow">SMART SUGGESTIONS</div><h2>Practical next steps from your budget</h2><p>Carrowmont calculates these suggestions locally from your entries and saved history. The numbers are deterministic, and no Smart Suggestions budget data is sent to an AI service.</p></div></div>
+    <div class="smart-context" id="smartContext" aria-live="polite"></div>
     <div class="insight-grid" id="insightGrid"></div>
+    <section class="smart-scenario-panel hidden" id="smartScenarioPanel" aria-labelledby="smartScenarioHeading">
+      <div class="smart-scenario-head">
+        <div><div class="eyebrow">ADJUSTMENT SCENARIOS</div><h3 id="smartScenarioHeading">Choose how much of evidenced excess to model</h3><p>These are comparison scenarios, not recommendations. They only use eligible unprotected flexible categories.</p></div>
+        <div class="smart-scenario-buttons" role="group" aria-label="Smart Suggestions adjustment scenario">
+          <button type="button" class="scenario-btn" data-smart-scenario="low" aria-pressed="false">Low-disruption</button>
+          <button type="button" class="scenario-btn active" data-smart-scenario="balanced" aria-pressed="true">Balanced</button>
+          <button type="button" class="scenario-btn" data-smart-scenario="aggressive" aria-pressed="false">Aggressive</button>
+        </div>
+      </div>
+      <div class="smart-scenario-result">
+        <div><span>Modelled adjustment</span><strong id="smartScenarioAmount">—</strong></div>
+        <p id="smartScenarioText"></p>
+      </div>
+      <div class="smart-priority-connection" id="smartPriorityConnection"></div>
+    </section>
+    <section class="smart-allocation-panel hidden" id="smartAllocationPanel" aria-labelledby="smartAllocationHeading">
+      <div><div class="eyebrow">PLANNING PRIORITY</div><h3 id="smartAllocationHeading">Use existing monthly surplus intentionally</h3></div>
+      <div class="smart-allocation-copy"><strong id="smartAllocationAmount">—</strong><span id="smartAllocationText"></span></div>
+    </section>
+    <div class="smart-protected-note"><strong>Built-in guardrail</strong><span id="smartProtectedNote">Protected categories are never used as spending-reduction sources.</span></div>
   </div>
 </section>
 
@@ -207,7 +228,7 @@
     <div><div class="eyebrow">METHODOLOGY</div><h2>How the planner treats your entries</h2><p>Amounts are converted to a monthly equivalent so weekly, fortnightly/biweekly, four-weekly, monthly, quarterly and annual items can be compared on one basis. Irregular income or spending is treated as the monthly average you enter.</p></div>
     <div class="methodology-list">
       <div><strong>Irregular bills become reserves</strong><span>An annual ₹36,000 bill is represented as ₹3,000 per month in the cash-flow model.</span></div>
-      <div><strong>Protected categories stay visible</strong><span>You can mark categories you do not want the insight engine to suggest reducing.</span></div>
+      <div><strong>Protected categories stay visible</strong><span>You can mark categories you do not want Smart Suggestions to use as spending-reduction sources.</span></div>
       <div><strong>Exceptional items stay in history</strong><span>Mark a category or whole month as exceptional so it is not treated as a normal baseline.</span></div>
       <div><strong>Emergency-fund targets are user-selected</strong><span>The planner shows coverage against the number of months you choose; it does not impose a universal target.</span></div>
     </div>
@@ -234,8 +255,9 @@
 <script src="storage.js?v=20261001.1"></script>
 <script src="pdf-export.js?v=20261001.1"></script>
 <script src="report-standard.js?v=20261001.1"></script>
-<script src="budget-pdf-renderer.js?v=20261002.2"></script>
-<script src="app.js?v=20261001.2"></script>
+<script src="smart-suggestions.js?v=20261002.1"></script>
+<script src="budget-pdf-renderer.js?v=20261002.3"></script>
+<script src="app.js?v=20261002.1"></script>
 <script src="analytics.js?v=20261001.1" data-carrowmont-tool="budget_cash_flow_planner" data-track-tool-open="true"></script>
 </body>
 </html>
