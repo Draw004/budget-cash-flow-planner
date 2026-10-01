@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Budget & Cash Flow Planner | Carrowmont</title>
+  <meta name="description" content="Build a monthly budget and pay-cycle cash-flow plan, track essential and flexible spending, savings, irregular bills, emergency reserves and month-to-month trends." />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="https://carrowmont.com/budget-cash-flow-planner/" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <meta property="og:site_name" content="Carrowmont" />
+  <meta property="og:title" content="Budget & Cash Flow Planner | Carrowmont" />
+  <meta property="og:description" content="Understand where your money goes each month, plan irregular bills, track savings and compare cash flow over time." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://carrowmont.com/budget-cash-flow-planner/" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="theme-color" content="#0e827a" />
+  <link rel="stylesheet" href="styles.css?v=20261001.1" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Carrowmont Budget & Cash Flow Planner","url":"https://carrowmont.com/budget-cash-flow-planner/","applicationCategory":"FinanceApplication","operatingSystem":"Any","description":"A privacy-first educational budget and cash-flow planning tool with monthly and pay-cycle views, local history and deterministic insights."}</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="container header-inner">
+    <div class="brand-cluster">
+      <a class="brand" href="/" aria-label="Carrowmont home">CARROWMONT</a>
+      <span class="brand-divider" aria-hidden="true"></span>
+      <span class="product-label">Budget &amp; Cash Flow Planner</span>
+    </div>
+    <div class="header-actions">
+      <nav class="top-nav" aria-label="Primary navigation">
+        <a href="#planner">Planner</a>
+        <a href="#history">History</a>
+        <a href="#insights">Insights</a>
+        <a href="#methodology">Methodology</a>
+        <a href="/#tools">All tools</a>
+        <a href="/">Home</a>
+      </nav>
+      <details class="locale-menu" id="localeMenu">
+        <summary id="localeSummary" aria-label="Choose country and currency"><span class="locale-globe" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 4.5 6 4.5 9S15 18 12 21c-3-3-4.5-6-4.5-9S9 6 12 3z"/></svg></span><span id="localeCurrent">India · INR</span><span class="locale-chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m7 9 5 5 5-5"/></svg></span></summary>
+        <div class="locale-popover">
+          <h3>Country &amp; currency</h3>
+          <p>Choose the context that makes the numbers easiest to understand.</p>
+          <label>Country / region<select id="regionSelect"></select></label>
+          <label>Currency<select id="currencySelect"></select></label>
+          <div class="locale-note"><strong>Important:</strong> Changing currency changes the unit and number format. It does not convert your entered amounts using an exchange rate.</div>
+          <button class="btn btn-primary btn-small" id="localeDone" type="button">Done</button>
+        </div>
+      </details>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="intro">
+  <div class="container tool-breadcrumb"><a href="/#tools">← Back to all Carrowmont tools</a></div>
+  <div class="container intro-grid">
+    <div>
+      <div class="eyebrow">UNDERSTAND TODAY'S MONEY</div>
+      <h1>See what comes in, what goes out, and what is actually left.</h1>
+      <p class="lede">Build a practical monthly budget, translate irregular bills into reserves, compare pay cycles and keep a private month-by-month history on this device.</p>
+      <div class="chips"><span>Monthly + pay-cycle views</span><span>Local-first history</span><span>Irregular-bill reserves</span><span>No account required</span></div>
+    </div>
+    <aside class="intro-card">
+      <div class="eyebrow">THE CORE FLOW</div>
+      <div class="mini-flow"><strong>Income</strong><span>−</span><strong>Spending</strong><span>−</span><strong>Saving</strong><span>=</span><strong>Free cash flow</strong></div>
+      <p>The planner uses your own entries and priorities. It does not prescribe one universal budget rule or emergency-fund target.</p>
+    </aside>
+  </div>
+</section>
+
+<section class="privacy-strip">
+  <div class="container privacy-inner">
+    <div class="privacy-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 20 6v6c0 5-3.3 8-8 9-4.7-1-8-4-8-9V6l8-3z"/><path d="M9 12h6M10 12V9.8a2 2 0 0 1 4 0V12"/></svg></div>
+    <div><strong>Your budget stays on this device by default.</strong><span>Monthly history is stored locally in your browser. Export a backup if you want to move or protect your records.</span></div>
+  </div>
+</section>
+
+<section class="planner-shell" id="planner">
+  <div class="container planner-layout">
+    <section class="planner-card controls-card">
+      <div class="section-head">
+        <div><div class="eyebrow">YOUR PLAN</div><h2>Build this month's cash flow</h2></div>
+        <div class="section-actions"><button class="text-btn" id="loadDefaultsBtn" type="button">Load Example</button><button class="text-btn danger-text" id="resetBtn" type="button">Reset</button></div>
+      </div>
+
+      <div class="view-toggle" role="tablist" aria-label="Planner view">
+        <button class="view-btn active" data-view="monthly" type="button">Monthly View</button>
+        <button class="view-btn" data-view="paycycle" type="button">Pay Cycle View</button>
+      </div>
+
+      <div class="plan-meta-grid">
+        <label class="field"><span>Budget month</span><input id="budgetMonth" type="month" /></label>
+        <label class="field"><span>Primary pay frequency</span><select id="primaryPayFrequency">
+          <option value="weekly">Weekly</option><option value="biweekly">Every 2 Weeks</option><option value="semimonthly">Twice Monthly</option><option value="fourweekly">Every 4 Weeks</option><option value="monthly">Monthly</option><option value="irregular">Irregular / Variable</option>
+        </select><small>Used for the pay-cycle view. Each income row can still have its own frequency.</small></label>
+        <label class="field paycycle-only hidden"><span>Next payday</span><input id="nextPayday" type="date" /></label>
+        <label class="field paycycle-only hidden"><span>Available cash today</span><div class="money-input"><span class="currency-prefix">₹</span><input id="availableCash" type="number" min="0" step="100" value="0" /></div><small>Optional. Used to compare upcoming bills with cash already available before payday.</small></label>
+      </div>
+
+      <div class="entry-section">
+        <div class="entry-heading"><div><span class="entry-badge income">1</span><h3>Income</h3><p>Add salary, partner income, business/freelance, rent or other income.</p></div><button class="btn btn-secondary btn-small add-row" data-kind="income" type="button">+ Add income</button></div>
+        <div class="entry-table-wrap"><div class="entry-table income-table" id="incomeRows"></div></div>
+      </div>
+
+      <div class="entry-section">
+        <div class="entry-heading"><div><span class="entry-badge essential">2</span><h3>Essential &amp; committed expenses</h3><p>Housing, loans, insurance, school/childcare, utilities and other commitments.</p></div><button class="btn btn-secondary btn-small add-row" data-kind="essential" type="button">+ Add expense</button></div>
+        <div class="entry-table-wrap"><div class="entry-table" id="essentialRows"></div></div>
+      </div>
+
+      <div class="entry-section">
+        <div class="entry-heading"><div><span class="entry-badge flexible">3</span><h3>Flexible &amp; lifestyle expenses</h3><p>Groceries, fuel, dining, shopping, entertainment, travel and other adjustable spending.</p></div><button class="btn btn-secondary btn-small add-row" data-kind="flexible" type="button">+ Add expense</button></div>
+        <div class="entry-table-wrap"><div class="entry-table" id="flexibleRows"></div></div>
+      </div>
+
+      <div class="entry-section">
+        <div class="entry-heading"><div><span class="entry-badge saving">4</span><h3>Savings &amp; investments</h3><p>Emergency savings, goals, recurring investments, retirement contributions and other planned saving.</p></div><button class="btn btn-secondary btn-small add-row" data-kind="saving" type="button">+ Add saving</button></div>
+        <div class="entry-table-wrap"><div class="entry-table" id="savingRows"></div></div>
+      </div>
+
+      <div class="entry-section emergency-section">
+        <div class="entry-heading"><div><span class="entry-badge reserve">5</span><h3>Emergency reserve</h3><p>Choose your own target. Carrowmont does not assume one universal number of months.</p></div></div>
+        <div class="fields three">
+          <label class="field"><span>Current emergency reserve</span><div class="money-input"><span class="currency-prefix">₹</span><input id="emergencyCurrent" type="number" min="0" step="1000" value="0" /></div></label>
+          <label class="field"><span>Your target</span><div class="input-suffix"><input id="emergencyTargetMonths" type="number" min="0" max="36" step="1" value="6" /><span>months</span></div></label>
+          <label class="field"><span>Planning priority</span><select id="priority"><option value="buffer">Keep a stronger cash buffer</option><option value="emergency">Build emergency reserve</option><option value="debt">Reduce debt</option><option value="goal">Fund a life goal</option><option value="investment">Increase recurring investment</option><option value="retirement">Retirement</option><option value="fi">Financial independence</option></select></label>
+        </div>
+      </div>
+
+      <div class="month-note-grid">
+        <label class="field"><span>Month note (optional)</span><input id="monthNote" type="text" maxlength="160" placeholder="Example: annual school fee, travel month, bonus month" /></label>
+        <label class="check-card"><input id="monthExceptional" type="checkbox" /><span><strong>Mark this month as exceptional</strong><small>It will remain in history but will not be treated as part of the normal comparison baseline.</small></span></label>
+      </div>
+
+      <div class="save-row">
+        <button class="btn btn-primary" id="saveMonthBtn" type="button">Save This Month</button>
+        <span id="saveStatus" class="save-status" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <aside class="summary-column">
+      <section class="summary-card sticky-summary">
+        <div class="eyebrow">MONTHLY CASH FLOW</div>
+        <div class="cashflow-hero" id="cashflowHero">
+          <span>Money remaining</span><strong id="moneyRemaining">₹0</strong><small id="remainingNote">after planned spending, reserves, savings and investments</small>
+        </div>
+        <div class="summary-grid">
+          <div><span>Income</span><strong id="monthlyIncome">₹0</strong></div>
+          <div><span>Essential</span><strong id="essentialTotal">₹0</strong></div>
+          <div><span>Flexible</span><strong id="flexibleTotal">₹0</strong></div>
+          <div><span>Savings &amp; investments</span><strong id="savingTotal">₹0</strong></div>
+          <div><span>Irregular-bill reserves</span><strong id="reserveTotal">₹0</strong></div>
+          <div><span>Savings rate</span><strong id="savingsRate">0%</strong></div>
+        </div>
+        <div class="safe-spend-grid">
+          <div><span>Safe weekly spending</span><strong id="safeWeekly">₹0</strong><small>Based on current money remaining</small></div>
+          <div><span>Safe daily spending</span><strong id="safeDaily">₹0</strong><small>Based on current money remaining</small></div>
+        </div>
+      </section>
+
+      <section class="summary-card paycycle-card paycycle-only hidden">
+        <div class="eyebrow">PAY CYCLE</div>
+        <h3>Until your next payday</h3>
+        <div class="paycycle-summary">
+          <div><span>Next payday</span><strong id="nextPaydayDisplay">—</strong></div>
+          <div><span>Typical income per cycle</span><strong id="cycleIncome">₹0</strong></div>
+          <div><span>Planned essentials per cycle</span><strong id="cycleEssential">₹0</strong></div>
+          <div><span>Planned savings per cycle</span><strong id="cycleSavings">₹0</strong></div>
+          <div><span>Cash-flow room per cycle</span><strong id="cycleRoom">₹0</strong></div>
+        </div>
+        <div class="upcoming-bills"><h4>Bills due before payday</h4><div id="upcomingBills"></div><div class="cash-available-line"><span>Cash after listed bills</span><strong id="cashAfterBills">—</strong></div></div>
+      </section>
+
+      <section class="summary-card reserve-card">
+        <div class="eyebrow">EMERGENCY RESERVE</div>
+        <div class="coverage-ring-wrap"><div class="coverage-ring" id="coverageRing"><div><strong id="coverageMonths">0.0</strong><span>months</span></div></div><div><h3 id="coverageHeading">Coverage based on essential expenses</h3><p id="coverageText">Enter your current reserve to compare it with the target you choose.</p></div></div>
+      </section>
+
+      <section class="summary-card report-actions-card">
+        <div class="eyebrow">REPORT &amp; PORTABILITY</div>
+        <button class="btn btn-primary full" id="reportBtn" type="button">Generate Budget &amp; Cash Flow Report</button><span id="reportDownloadStatus" class="save-status report-status" aria-live="polite"></span>
+        <button class="btn btn-secondary full" id="copyBtn" type="button">Copy Summary</button>
+        <div class="two-buttons"><button class="btn btn-secondary" id="exportBtn" type="button">Export My Data</button><label class="btn btn-secondary file-btn" for="importFile">Restore Data<input id="importFile" type="file" accept="application/json,.json" /></label></div>
+      </section>
+    </aside>
+  </div>
+</section>
+
+<section class="insights-section" id="insights">
+  <div class="container">
+    <div class="section-heading-row"><div><div class="eyebrow">BUDGET INTELLIGENCE</div><h2>What the numbers are telling you</h2><p>These are deterministic observations based on your entries and saved history. They are not individualized financial advice.</p></div></div>
+    <div class="insight-grid" id="insightGrid"></div>
+  </div>
+</section>
+
+<section class="history-section" id="history">
+  <div class="container">
+    <div class="section-heading-row history-heading"><div><div class="eyebrow">YOUR LOCAL HISTORY</div><h2>Compare months without creating an account</h2><p>Saved records remain on this browser/device unless you export and restore them elsewhere.</p></div><div class="history-actions"><select id="historyRange" aria-label="History range"><option value="3">Last 3 months</option><option value="6">Last 6 months</option><option value="12">Last 12 months</option></select><button class="btn btn-secondary btn-small" id="refreshHistoryBtn" type="button">Refresh</button></div></div>
+    <div class="history-grid">
+      <section class="history-card"><h3>Cash-flow trend</h3><div class="trend-chart" id="trendChart"></div></section>
+      <section class="history-card"><h3>Month comparison</h3><div class="history-table-wrap"><table class="history-table"><thead><tr><th>Month</th><th>Income</th><th>Spending</th><th>Saving</th><th>Remaining</th><th></th></tr></thead><tbody id="historyTableBody"></tbody></table></div></section>
+    </div>
+  </div>
+</section>
+
+<section class="methodology-section" id="methodology">
+  <div class="container methodology-grid">
+    <div><div class="eyebrow">METHODOLOGY</div><h2>How the planner treats your entries</h2><p>Amounts are converted to a monthly equivalent so weekly, fortnightly/biweekly, four-weekly, monthly, quarterly and annual items can be compared on one basis. Irregular income or spending is treated as the monthly average you enter.</p></div>
+    <div class="methodology-list">
+      <div><strong>Irregular bills become reserves</strong><span>An annual ₹36,000 bill is represented as ₹3,000 per month in the cash-flow model.</span></div>
+      <div><strong>Protected categories stay visible</strong><span>You can mark categories you do not want the insight engine to suggest reducing.</span></div>
+      <div><strong>Exceptional items stay in history</strong><span>Mark a category or whole month as exceptional so it is not treated as a normal baseline.</span></div>
+      <div><strong>Emergency-fund targets are user-selected</strong><span>The planner shows coverage against the number of months you choose; it does not impose a universal target.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="continue-section">
+  <div class="container continue-card"><div><div class="eyebrow">CONNECT TODAY WITH TOMORROW</div><h2>Turn free cash flow into a planning decision</h2><p>Use the money remaining in your budget as an input to the Carrowmont Goal Planner, Recurring Investment/SIP Calculator, Retirement Planner or Financial Independence tool.</p></div><div class="continue-links"><a href="/goal-planner/">Goal Planner →</a><a href="/sip-calculator/" class="investment-tool-link">SIP Calculator →</a><a href="/retirement-calculator/">Retirement Planner →</a><a href="/financial-independence/">Financial Independence →</a></div></div>
+</section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand-block"><a class="footer-wordmark" href="/">CARROWMONT</a><strong class="footer-product-name">Budget &amp; Cash Flow Planner</strong><p>Build a practical monthly budget, plan irregular bills, compare pay cycles and track cash flow over time.</p><span class="footer-small">Educational planning tool &middot; Carrowmont</span></div>
+    <div class="footer-col"><strong>Tools</strong><a class="footer-investment-link" href="/sip-calculator/">SIP Calculator</a><a href="/retirement-calculator/">Retirement Planner</a><a href="/inflation-calculator/">Inflation Calculator</a><a href="/goal-planner/">Goal Planner</a><a href="/financial-independence/">Financial Independence</a><a href="/budget-cash-flow-planner/">Budget &amp; Cash Flow Planner</a><a href="/#tools">All tools</a></div>
+    <div class="footer-col"><strong>Carrowmont</strong><a href="/learn.html">Learn</a><a href="/about.html">About</a><a href="/methodology.html">Methodology</a><a href="/contact.html">Contact</a></div>
+    <div class="footer-col"><strong>Legal</strong><a href="/disclaimer.html">Disclaimer</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a></div>
+  </div>
+  <div class="container footer-bottom"><span>&copy; 2026 Carrowmont &middot; Budget &amp; Cash Flow Planner</span><span>Illustrative estimates, not financial advice.</span></div>
+</footer>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="locale.js?v=20261001.1"></script>
+<script src="storage.js?v=20261001.1"></script>
+<script src="pdf-export.js?v=20261001.1"></script>
+<script src="report-standard.js?v=20261001.1"></script>
+<script src="budget-pdf-renderer.js?v=20261001.1"></script>
+<script src="app.js?v=20261001.1"></script>
+<script src="analytics.js?v=20261001.1" data-carrowmont-tool="budget_cash_flow_planner" data-track-tool-open="true"></script>
+</body>
+</html>
