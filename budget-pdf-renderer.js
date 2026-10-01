@@ -46,7 +46,7 @@
       {label:'Irregular / monthly average',body:'If you select “Irregular / Monthly Average”, Carrowmont uses the amount you enter as your estimated average for one month.'},
       {label:'Quarterly & annual bills',body:'Carrowmont sets aside a monthly reserve for quarterly and annual expenses. That reserve is already included in the expense totals shown in this report.'},
       {label:'Protected categories',body:'Protected categories stay in your budget and history, but Carrowmont does not suggest reducing them.'},
-      {label:'Exceptional months or categories',body:'Items you mark exceptional remain visible in history but are excluded when Carrowmont works out your normal comparison baseline.'}
+      {label:'Exceptional entries',body:'Months or categories you mark as exceptional stay visible in history but are left out of the normal comparison baseline.'}
     ];
     y=noteTable(ctx,notes,M,y,CW);footer(ctx);return pg.canvas;
   }
