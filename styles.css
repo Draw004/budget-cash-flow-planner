@@ -92,3 +92,24 @@
 .smart-allocation-copy a{color:var(--teal-dark);font-weight:850;text-decoration:none;white-space:nowrap}
 .smart-allocation-copy a:hover{text-decoration:underline}
 @media(max-width:720px){.smart-allocation-panel{display:grid}.smart-allocation-copy{justify-items:start;text-align:left}}
+
+/* Smart Suggestions SS2 - evidence, ranking and scenario transparency */
+.insight-card-topline{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.smart-evidence-badge{display:inline-flex;align-items:center;justify-content:center;min-height:24px;padding:4px 9px;border:1px solid #c8dfdc;border-radius:999px;background:#f1faf8;color:var(--teal-dark);font-size:10px;font-weight:900;letter-spacing:.35px;text-transform:uppercase;white-space:nowrap}
+.smart-evidence-line{margin-top:12px;padding:10px 11px;border-radius:10px;background:#f8fbfc;display:grid;gap:3px;font-size:12px;line-height:1.45}
+.smart-evidence-line strong{font-size:10px;color:var(--teal-dark);text-transform:uppercase;letter-spacing:.35px}
+.smart-evidence-line span{color:var(--muted)}
+.smart-action-line{margin-top:9px;padding:9px 11px;border-radius:10px;background:#eaf7f4;color:var(--ink);font-size:12px;line-height:1.45;font-weight:750}
+.smart-why{margin-top:10px;border-top:1px solid #e2ecef;padding-top:9px}
+.smart-why summary{cursor:pointer;color:var(--teal-dark);font-size:12px;font-weight:850;list-style-position:outside;margin-left:15px}
+.smart-why p{margin:7px 0 0;color:var(--muted);font-size:12px;line-height:1.5}
+.smart-empty-state{grid-column:1/-1;max-width:780px}
+.smart-scenario-breakdown{margin-top:12px;border:1px solid #d7e8e5;border-radius:12px;background:#fff;overflow:hidden}
+.smart-scenario-breakdown summary{cursor:pointer;padding:11px 14px;color:var(--teal-dark);font-size:12px;font-weight:850;background:#f8fbfc}
+.smart-scenario-breakdown-body{display:grid}
+.smart-breakdown-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:11px 14px;border-top:1px solid #e6eef0}
+.smart-breakdown-row>div{display:grid;gap:3px;min-width:0}
+.smart-breakdown-row>div>strong{font-size:13px;color:var(--ink)}
+.smart-breakdown-row span{font-size:11px;line-height:1.45;color:var(--muted);overflow-wrap:anywhere}
+.smart-breakdown-row>strong{font-size:13px;color:var(--teal-dark);white-space:nowrap}
+@media(max-width:620px){.insight-card-topline{align-items:flex-start}.smart-breakdown-row{grid-template-columns:1fr}.smart-breakdown-row>strong{white-space:normal}.smart-evidence-badge{flex:0 0 auto}}
