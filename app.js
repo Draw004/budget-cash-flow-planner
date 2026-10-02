@@ -57,7 +57,7 @@
     moneyRemaining:byId('moneyRemaining'), remainingNote:byId('remainingNote'), cashflowHero:byId('cashflowHero'), monthlyIncome:byId('monthlyIncome'), essentialTotal:byId('essentialTotal'), flexibleTotal:byId('flexibleTotal'), savingTotal:byId('savingTotal'), reserveTotal:byId('reserveTotal'), savingsRate:byId('savingsRate'), safeWeekly:byId('safeWeekly'), safeDaily:byId('safeDaily'),
     nextPaydayDisplay:byId('nextPaydayDisplay'), cycleIncome:byId('cycleIncome'), cycleEssential:byId('cycleEssential'), cycleSavings:byId('cycleSavings'), cycleRoom:byId('cycleRoom'), upcomingBills:byId('upcomingBills'), cashAfterBills:byId('cashAfterBills'),
     coverageRing:byId('coverageRing'), coverageMonths:byId('coverageMonths'), coverageHeading:byId('coverageHeading'), coverageText:byId('coverageText'),
-    insightGrid:byId('insightGrid'), smartContext:byId('smartContext'), smartScenarioPanel:byId('smartScenarioPanel'), smartScenarioAmount:byId('smartScenarioAmount'), smartScenarioText:byId('smartScenarioText'), smartPriorityConnection:byId('smartPriorityConnection'), smartAllocationPanel:byId('smartAllocationPanel'), smartAllocationAmount:byId('smartAllocationAmount'), smartAllocationText:byId('smartAllocationText'), smartProtectedNote:byId('smartProtectedNote'), historyRange:byId('historyRange'), historyTableBody:byId('historyTableBody'), trendChart:byId('trendChart'), saveStatus:byId('saveStatus')
+    insightGrid:byId('insightGrid'), smartContext:byId('smartContext'), smartScenarioPanel:byId('smartScenarioPanel'), smartScenarioAmount:byId('smartScenarioAmount'), smartScenarioText:byId('smartScenarioText'), smartPriorityConnection:byId('smartPriorityConnection'), smartScenarioBreakdown:byId('smartScenarioBreakdown'), smartScenarioBreakdownBody:byId('smartScenarioBreakdownBody'), smartAllocationPanel:byId('smartAllocationPanel'), smartAllocationAmount:byId('smartAllocationAmount'), smartAllocationText:byId('smartAllocationText'), smartProtectedNote:byId('smartProtectedNote'), historyRange:byId('historyRange'), historyTableBody:byId('historyTableBody'), trendChart:byId('trendChart'), saveStatus:byId('saveStatus')
   };
 
   function escapeHtml(s){return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
@@ -191,8 +191,14 @@
       return;
     }
     if(els.smartContext)els.smartContext.textContent=view.contextText;
-    els.insightGrid.innerHTML=view.primary.map(x=>`<article class="insight-card ${x.type||''}" data-smart-kind="${escapeHtml(x.kind)}"><div class="insight-kicker">${escapeHtml(x.kicker)}</div><h3>${escapeHtml(x.title)}</h3><p>${escapeHtml(x.body)}</p><div class="insight-meta">${escapeHtml(x.meta)}</div></article>`).join('');
-    if(!view.primary.length)els.insightGrid.innerHTML='<article class="insight-card"><div class="insight-kicker">SMART SUGGESTIONS</div><h3>No additional signal is needed right now.</h3><p>Keep saving normal months to build a stronger comparison history.</p></article>';
+    els.insightGrid.innerHTML=view.primary.map(x=>`<article class="insight-card ${x.type||''}" data-smart-kind="${escapeHtml(x.kind)}">
+      <div class="insight-card-topline"><div class="insight-kicker">${escapeHtml(x.kicker)}</div><span class="smart-evidence-badge">${escapeHtml(x.confidenceLabel)}</span></div>
+      <h3>${escapeHtml(x.title)}</h3><p>${escapeHtml(x.body)}</p>
+      <div class="smart-evidence-line"><strong>Evidence</strong><span>${escapeHtml(x.evidenceText)}</span></div>
+      ${x.actionText?`<div class="smart-action-line">${escapeHtml(x.actionText)}</div>`:''}
+      <details class="smart-why"><summary>Why am I seeing this?</summary><p>${escapeHtml(x.whyText)}</p></details>
+      <div class="insight-meta">${escapeHtml(x.meta)}</div></article>`).join('');
+    if(!view.primary.length){const empty=view.emptyState||{title:'No strong adjustable trend stands out right now.',body:'Keep saving normal months to build a clearer comparison history.'};els.insightGrid.innerHTML=`<article class="insight-card smart-empty-state"><div class="insight-kicker">SMART SUGGESTIONS</div><h3>${escapeHtml(empty.title)}</h3><p>${escapeHtml(empty.body)}</p></article>`;}
     const scenario=view.scenario;
     if(els.smartScenarioPanel){
       els.smartScenarioPanel.classList.toggle('hidden',!scenario);
@@ -201,17 +207,21 @@
         btn.classList.toggle('active',active);btn.setAttribute('aria-pressed',active?'true':'false');
       });
       if(scenario){
-        els.smartScenarioAmount.textContent=`${money(scenario.amount)} / month · ${money(scenario.annualAmount)} / year`;
-        els.smartScenarioText.textContent=scenario.text;
+        els.smartScenarioAmount.textContent=`${money(scenario.amount)} / month · ${money(scenario.annualAmount)} / 12 months`;
+        els.smartScenarioText.textContent=`${scenario.text} ${scenario.candidateCount} categor${scenario.candidateCount===1?'y':'ies'} contribute to this scenario.`;
         const link=scenario.relatedTool?` <a href="${escapeHtml(scenario.relatedTool.href)}">Open ${escapeHtml(scenario.relatedTool.label)} →</a>`:'';
         els.smartPriorityConnection.innerHTML=`<strong>Selected priority: ${escapeHtml(priorityLabel(state.priority))}</strong><span>${escapeHtml(scenario.priorityText)}${link}</span>`;
-      }
+        if(els.smartScenarioBreakdown&&els.smartScenarioBreakdownBody){
+          els.smartScenarioBreakdown.classList.toggle('hidden',!scenario.breakdown?.length);
+          els.smartScenarioBreakdownBody.innerHTML=(scenario.breakdown||[]).map(item=>`<div class="smart-breakdown-row"><div><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.confidenceLabel)} · Baseline ${escapeHtml(money(item.baselineValue))} · Current ${escapeHtml(money(item.currentValue))} · Evidenced excess ${escapeHtml(money(item.excessValue))}</span></div><strong>${escapeHtml(money(item.adjustmentValue))} / month</strong></div>`).join('');
+        }
+      }else if(els.smartScenarioBreakdown){els.smartScenarioBreakdown.classList.add('hidden');}
     }
     if(els.smartAllocationPanel){
       const allocation=view.allocation;
       els.smartAllocationPanel.classList.toggle('hidden',!allocation);
       if(allocation){
-        els.smartAllocationAmount.textContent=`${money(allocation.amount)} / month`;
+        els.smartAllocationAmount.textContent=`${money(allocation.amount)} / month · ${money(allocation.annualAmount)} / 12 months`;
         const link=allocation.relatedTool?` <a href="${escapeHtml(allocation.relatedTool.href)}">Open ${escapeHtml(allocation.relatedTool.label)} →</a>`:'';
         els.smartAllocationText.innerHTML=`${escapeHtml(allocation.text)}${link}`;
       }

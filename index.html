@@ -15,7 +15,7 @@
   <meta property="og:url" content="https://carrowmont.com/budget-cash-flow-planner/" />
   <meta name="twitter:card" content="summary" />
   <meta name="theme-color" content="#0e827a" />
-  <link rel="stylesheet" href="styles.css?v=20261002.ui1" />
+  <link rel="stylesheet" href="styles.css?v=20261002.ss2" />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Carrowmont Budget & Cash Flow Planner","url":"https://carrowmont.com/budget-cash-flow-planner/","applicationCategory":"FinanceApplication","operatingSystem":"Any","description":"A privacy-first educational budget and cash-flow planning tool with monthly and pay-cycle views, local history and deterministic Smart Suggestions."}</script>
 </head>
 <body>
@@ -203,6 +203,10 @@
         <div><span>Modelled adjustment</span><strong id="smartScenarioAmount">—</strong></div>
         <p id="smartScenarioText"></p>
       </div>
+      <details class="smart-scenario-breakdown hidden" id="smartScenarioBreakdown">
+        <summary>View category breakdown</summary>
+        <div id="smartScenarioBreakdownBody" class="smart-scenario-breakdown-body"></div>
+      </details>
       <div class="smart-priority-connection" id="smartPriorityConnection"></div>
     </section>
     <section class="smart-allocation-panel hidden" id="smartAllocationPanel" aria-labelledby="smartAllocationHeading">
@@ -255,9 +259,9 @@
 <script src="storage.js?v=20261001.1"></script>
 <script src="pdf-export.js?v=20261001.1"></script>
 <script src="report-standard.js?v=20261001.1"></script>
-<script src="smart-suggestions.js?v=20261002.1"></script>
-<script src="budget-pdf-renderer.js?v=20261002.3"></script>
-<script src="app.js?v=20261002.1"></script>
+<script src="smart-suggestions.js?v=20261002.ss2"></script>
+<script src="budget-pdf-renderer.js?v=20261002.ss2"></script>
+<script src="app.js?v=20261002.ss2"></script>
 <script src="analytics.js?v=20261001.1" data-carrowmont-tool="budget_cash_flow_planner" data-track-tool-open="true"></script>
 </body>
 </html>
