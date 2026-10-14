@@ -57,6 +57,7 @@
     moneyRemaining:byId('moneyRemaining'), remainingNote:byId('remainingNote'), cashflowHero:byId('cashflowHero'), monthlyIncome:byId('monthlyIncome'), essentialTotal:byId('essentialTotal'), flexibleTotal:byId('flexibleTotal'), savingTotal:byId('savingTotal'), reserveTotal:byId('reserveTotal'), savingsRate:byId('savingsRate'), safeWeekly:byId('safeWeekly'), safeDaily:byId('safeDaily'),
     nextPaydayDisplay:byId('nextPaydayDisplay'), cycleIncome:byId('cycleIncome'), cycleEssential:byId('cycleEssential'), cycleSavings:byId('cycleSavings'), cycleRoom:byId('cycleRoom'), upcomingBills:byId('upcomingBills'), cashAfterBills:byId('cashAfterBills'),
     coverageRing:byId('coverageRing'), coverageMonths:byId('coverageMonths'), coverageHeading:byId('coverageHeading'), coverageText:byId('coverageText'),
+    budgetDebtHandoff:byId('budgetDebtHandoff'), budgetDebtHandoffText:byId('budgetDebtHandoffText'), debtPayoffHandoffBtn:byId('debtPayoffHandoffBtn'), debtPayoffHandoffStatus:byId('debtPayoffHandoffStatus'),
     insightGrid:byId('insightGrid'), smartContext:byId('smartContext'), smartScenarioPanel:byId('smartScenarioPanel'), smartScenarioAmount:byId('smartScenarioAmount'), smartScenarioText:byId('smartScenarioText'), smartPriorityConnection:byId('smartPriorityConnection'), smartScenarioBreakdown:byId('smartScenarioBreakdown'), smartScenarioBreakdownBody:byId('smartScenarioBreakdownBody'), smartAllocationPanel:byId('smartAllocationPanel'), smartAllocationAmount:byId('smartAllocationAmount'), smartAllocationText:byId('smartAllocationText'), smartProtectedNote:byId('smartProtectedNote'), historyRange:byId('historyRange'), historyTableBody:byId('historyTableBody'), trendChart:byId('trendChart'), saveStatus:byId('saveStatus')
   };
 
@@ -159,6 +160,7 @@
     const c=calculate();
     els.moneyRemaining.textContent=money(c.remaining); els.cashflowHero.classList.toggle('negative',c.remaining<0);
     els.remainingNote.textContent=c.remaining<0?'planned outflows exceed monthly income under the current entries':'after planned spending, reserves, savings and investments';
+    if(els.budgetDebtHandoff){els.budgetDebtHandoff.hidden=!(c.remaining>0);if(c.remaining>0&&els.budgetDebtHandoffText)els.budgetDebtHandoffText.textContent=`You currently have ${money(c.remaining)} remaining in this monthly plan. Stage it as a possible extra debt payment only if you want to compare that scenario.`;}
     els.monthlyIncome.textContent=money(c.income); els.essentialTotal.textContent=money(c.essential); els.flexibleTotal.textContent=money(c.flexible); els.savingTotal.textContent=money(c.saving); els.reserveTotal.textContent=money(c.reserves); els.savingsRate.textContent=`${c.savingsRate.toFixed(1)}%`; els.safeWeekly.textContent=money(c.weekly); els.safeDaily.textContent=money(c.daily);
     els.cycleIncome.textContent=money(c.cycleIncome); els.cycleEssential.textContent=money(c.cycleEssential); els.cycleSavings.textContent=money(c.cycleSaving); els.cycleRoom.textContent=money(c.cycleRoom);
     if(state.nextPayday){try{els.nextPaydayDisplay.textContent=new Intl.DateTimeFormat(L.getLocale(),{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${state.nextPayday}T00:00:00`));}catch(_){els.nextPaydayDisplay.textContent=state.nextPayday;}}else els.nextPaydayDisplay.textContent='Not set';
@@ -275,6 +277,16 @@
   function toast(msg){const t=byId('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2600);}
   function downloadJson(obj,filename){const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);}
 
+  function stageDebtPayoffHandoff(){
+    const c=calculate();
+    if(!(c.remaining>0)){if(els.debtPayoffHandoffStatus)els.debtPayoffHandoffStatus.textContent='There is no positive monthly amount to stage from the current budget.';return;}
+    const plan=window.CarrowmontPlanState;
+    if(!plan?.set){if(els.debtPayoffHandoffStatus)els.debtPayoffHandoffStatus.textContent='Connected planning is unavailable in this browser.';return;}
+    plan.set('assumptions.possibleMonthlyDebtExtra',c.remaining,{sourceTool:'budget-cash-flow-planner',currency:L.getCurrency()});
+    if(els.debtPayoffHandoffStatus)els.debtPayoffHandoffStatus.textContent='Monthly amount staged. Opening Debt Payoff Calculator…';
+    window.location.href='debt-payoff-calculator.html';
+  }
+
   function copySummary(){const c=calculate();const lines=[
     'Carrowmont Budget & Cash Flow Summary',`Month: ${state.month}`,`Country / currency: ${L.getProfile().label} · ${L.getCurrency()}`,
     `Monthly income: ${money(c.income)}`,`Essential expenses: ${money(c.essential)}`,`Flexible expenses: ${money(c.flexible)}`,`Savings & investments: ${money(c.saving)}`,`Irregular-bill reserves: ${money(c.reserves)}`,`Money remaining: ${money(c.remaining)}`,`Savings rate: ${c.savingsRate.toFixed(1)}%`,`Emergency reserve coverage: ${c.coverage.toFixed(1)} months`,`Selected emergency target: ${num(state.emergencyTargetMonths).toFixed(0)} months`,'','Educational planning illustration. Not individualized financial advice.'
@@ -292,6 +304,7 @@
     document.addEventListener('click',e=>{const scenario=e.target.closest('[data-smart-scenario]');if(scenario){state.smartScenario=scenario.dataset.smartScenario;renderInsights();savePrefs();return;}const add=e.target.closest('.add-row');if(add){addRow(add.dataset.kind);return;}const del=e.target.closest('.delete-row');if(del){deleteRow(del);return;}const hist=e.target.closest('[data-delete-month]');if(hist){if(confirm(`Delete saved month ${hist.dataset.deleteMonth}?`))S.deleteMonth(hist.dataset.deleteMonth).then(refreshHistory);return;}});
     document.querySelectorAll('.view-btn').forEach(btn=>btn.addEventListener('click',()=>{state.view=btn.dataset.view;syncInputsFromState();renderAll();savePrefs();}));
     byId('saveMonthBtn').addEventListener('click',saveCurrentMonth);byId('refreshHistoryBtn').addEventListener('click',refreshHistory);byId('copyBtn').addEventListener('click',copySummary);byId('reportBtn').addEventListener('click',generateReport);
+    if(els.debtPayoffHandoffBtn)els.debtPayoffHandoffBtn.addEventListener('click',stageDebtPayoffHandoff);
     byId('exportBtn').addEventListener('click',async()=>{try{downloadJson(await S.exportAll(),`carrowmont-budget-backup-${isoMonth(new Date())}.json`);toast('Budget backup exported.');}catch(err){console.error(err);toast('Could not export budget data.');}});
     byId('importFile').addEventListener('change',async e=>{const f=e.target.files?.[0];if(!f)return;try{const data=JSON.parse(await f.text());await S.importAll(data);const pref=S.loadPreferences();if(pref)state=normalizeState(pref);syncInputsFromState();renderRows();renderAll();await refreshHistory();toast('Budget data restored.');}catch(err){console.error(err);toast(err.message||'Could not restore this backup.');}finally{e.target.value='';}});
     byId('loadDefaultsBtn').addEventListener('click',()=>{state=structuredClone(DEFAULTS);state.month=els.budgetMonth.value||isoMonth(today);state.nextPayday=defaultNextPayday(state.primaryPayFrequency);syncInputsFromState();renderRows();renderAll();savePrefs();toast('Example budget loaded.');});
