@@ -3,6 +3,8 @@
 
   const L = window.CarrowmontLocale;
   const S = window.CarrowmontBudgetStorage;
+  const Core = window.CarrowmontBudgetCore;
+  if (!Core) throw new Error('Carrowmont Budget core is unavailable.');
   const SS = window.CarrowmontSmartSuggestions;
   const byId = id => document.getElementById(id);
   const clamp = (n,a,b)=>Math.min(b,Math.max(a,n));
@@ -11,16 +13,7 @@
   const today = new Date(); today.setHours(0,0,0,0);
   const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`;
 
-  const FREQ = {
-    weekly:{label:'Weekly',perMonth:52/12,days:7},
-    biweekly:{label:'Every 2 Weeks',perMonth:26/12,days:14},
-    semimonthly:{label:'Twice Monthly',perMonth:2,days:365.2425/24},
-    fourweekly:{label:'Every 4 Weeks',perMonth:13/12,days:28},
-    monthly:{label:'Monthly',perMonth:1,days:365.2425/12},
-    quarterly:{label:'Quarterly',perMonth:1/3,days:365.2425/4},
-    annual:{label:'Annual',perMonth:1/12,days:365.2425},
-    irregular:{label:'Irregular / Monthly Average',perMonth:1,days:null}
-  };
+  const FREQ = Core.FREQ;
 
   const DEFAULTS = {
     view:'monthly', month:isoMonth(today), primaryPayFrequency:'monthly', nextPayday:'', availableCash:0, smartScenario:'balanced',
@@ -73,10 +66,10 @@
     }
     return FREQ[key]?.label || key;
   }
-  function monthlyEquivalent(amount,frequency){return Math.max(0,num(amount))* (FREQ[frequency]?.perMonth || 1);}
-  function perCycleFromMonthly(monthly,frequency){const p=FREQ[frequency]?.perMonth||1;return p>0?monthly/p:monthly;}
-  function irregularReserve(rows){return rows.filter(r=>!['weekly','biweekly','semimonthly','fourweekly','monthly','irregular'].includes(r.frequency)).reduce((sum,r)=>sum+monthlyEquivalent(r.amount,r.frequency),0);}
-  function sumRows(rows){return rows.reduce((sum,r)=>sum+monthlyEquivalent(r.amount,r.frequency),0);}
+  function monthlyEquivalent(amount,frequency){return Core.monthlyEquivalent(amount,frequency);}
+  function perCycleFromMonthly(monthly,frequency){return Core.perCycleFromMonthly(monthly,frequency);}
+  function irregularReserve(rows){return Core.irregularReserve(rows);}
+  function sumRows(rows){return Core.sumRows(rows);}
   function normalizeState(raw){
     const s={...structuredClone(DEFAULTS),...(raw||{})};
     ['incomes','essential','flexible','savings'].forEach(k=>{if(!Array.isArray(s[k]))s[k]=[];s[k]=s[k].map(r=>({...r,id:r.id||uid()}));});
@@ -90,20 +83,7 @@
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
-  function calculate(s=state){
-    const income=sumRows(s.incomes), essential=sumRows(s.essential), flexible=sumRows(s.flexible), saving=sumRows(s.savings);
-    const reserves=irregularReserve([...s.essential,...s.flexible]);
-    const remaining=income-essential-flexible-saving;
-    const savingsRate=income>0?saving/income*100:0;
-    const weekly=Math.max(0,remaining)/(52/12), daily=Math.max(0,remaining)/(365.2425/12);
-    const coverage=essential>0?Math.max(0,num(s.emergencyCurrent))/essential:0;
-    const targetAmount=essential*Math.max(0,num(s.emergencyTargetMonths));
-    const emergencyGap=Math.max(0,targetAmount-Math.max(0,num(s.emergencyCurrent)));
-    const cycleFreq=s.primaryPayFrequency||'monthly';
-    const cycleIncome=perCycleFromMonthly(income,cycleFreq), cycleEssential=perCycleFromMonthly(essential,cycleFreq), cycleSaving=perCycleFromMonthly(saving,cycleFreq), cycleFlexible=perCycleFromMonthly(flexible,cycleFreq);
-    const cycleRoom=cycleIncome-cycleEssential-cycleSaving-cycleFlexible;
-    return {income,essential,flexible,saving,reserves,remaining,savingsRate,weekly,daily,coverage,targetAmount,emergencyGap,cycleIncome,cycleEssential,cycleSaving,cycleFlexible,cycleRoom};
-  }
+  function calculate(s=state){return Core.calculate(s);}
 
   function frequencyOptions(selected,includeIrregular=true){
     return Object.entries(FREQ).filter(([k])=>includeIrregular||k!=='irregular').map(([k,v])=>`<option value="${k}" ${k===selected?'selected':''}>${escapeHtml(frequencyLabel(k))}</option>`).join('');
