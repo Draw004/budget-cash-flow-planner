@@ -41,6 +41,7 @@
   let state = structuredClone(DEFAULTS);
   let history = [];
   let toastTimer;
+  let mycmTouched=false;
 
   const els = {
     budgetMonth:byId('budgetMonth'), primaryPayFrequency:byId('primaryPayFrequency'), nextPayday:byId('nextPayday'), availableCash:byId('availableCash'),
@@ -213,11 +214,26 @@
 
   function summarySnapshot(){const c=calculate();return {income:c.income,essential:c.essential,flexible:c.flexible,saving:c.saving,reserves:c.reserves,remaining:c.remaining,savingsRate:c.savingsRate,coverage:c.coverage};}
   function snapshot(){return {...structuredClone(state),summary:summarySnapshot(),savedAt:new Date().toISOString(),region:L.getRegion(),currency:L.getCurrency()};}
+
+  function applyMyCarrowmontPlan(input){
+    if(!input||typeof input!=='object')return;
+    if(input.region&&L.regions?.[input.region])L.setRegion(input.region,{syncCurrency:false});
+    if(input.currency&&L.currencies?.[input.currency])L.setCurrency(input.currency);
+    state=normalizeState(input);mycmTouched=true;syncInputsFromState();renderRows();renderAll();savePrefs();
+  }
+  function configureMyCarrowmontSave(){
+    const bridge=window.CarrowmontPlanSave;if(!bridge?.register)return;
+    bridge.register({journey:'budget-cash-flow',toolPath:'/budget-cash-flow-planner/',anchor:'.summary-column',
+      getPlan(){const c=calculate();if(!mycmTouched||!(c.income>0&&(c.essential>0||c.flexible>0||c.saving>0||state.emergencyCurrent>0)))return null;return {label:`Budget & cash flow - ${state.month}`,scenario:{input:snapshot(),summary:{income:c.income,essential:c.essential,flexible:c.flexible,saving:c.saving,remaining:c.remaining}},profileFacts:{'cashFlow.takeHomeIncome':{value:c.income,unit:L.getCurrency(),source:'Budget & Cash Flow'},'cashFlow.essentialExpenses':{value:c.essential,unit:L.getCurrency(),source:'Budget & Cash Flow'},'cashFlow.flexibleExpenses':{value:c.flexible,unit:L.getCurrency(),source:'Budget & Cash Flow'},'resilience.emergencySavings':{value:state.emergencyCurrent,unit:L.getCurrency(),source:'Budget & Cash Flow'},'resilience.targetMonths':{value:state.emergencyTargetMonths,unit:'months',source:'Budget & Cash Flow'}}};},
+      applyPlan:scenario=>applyMyCarrowmontPlan(scenario?.input)
+    });
+  }
+  function offerMyCarrowmont(){if(mycmTouched)window.CarrowmontPlanSave?.offer?.('budget-cash-flow');}
   async function refreshHistory(){
     try{history=await S.listMonths();renderHistory();renderInsights();}catch(err){console.error(err);toast('Local history is not available in this browser.');}
   }
   function renderHistory(){
-    const n=num(els.historyRange.value,3);const rows=history.slice(-n);els.historyTableBody.innerHTML=rows.length?rows.slice().reverse().map(h=>{const spend=num(h.summary?.essential)+num(h.summary?.flexible);return `<tr class="${h.monthExceptional?'exceptional-month':''}"><td><strong>${escapeHtml(h.month)}</strong>${h.monthExceptional?'<span class="month-note">Exceptional month</span>':h.monthNote?`<span class="month-note">${escapeHtml(h.monthNote)}</span>`:''}</td><td>${escapeHtml(money(h.summary?.income||0))}</td><td>${escapeHtml(money(spend))}</td><td>${escapeHtml(money(h.summary?.saving||0))}</td><td>${escapeHtml(money(h.summary?.remaining||0))}</td><td><button class="history-delete" type="button" data-delete-month="${escapeHtml(h.month)}">Delete</button></td></tr>`;}).join(''):'<tr><td colspan="6">No months saved yet. Save the current month to start a private history on this device.</td></tr>';
+    const n=num(els.historyRange.value,3);const rows=history.slice(-n);els.historyTableBody.innerHTML=rows.length?rows.slice().reverse().map(h=>{const spend=num(h.summary?.essential)+num(h.summary?.flexible);return `<tr class="${h.monthExceptional?'exceptional-month':''}"><td><strong>${escapeHtml(h.month)}</strong>${h.monthExceptional?'<span class="month-note">Exceptional month</span>':h.monthNote?`<span class="month-note">${escapeHtml(h.monthNote)}</span>`:''}</td><td>${escapeHtml(money(h.summary?.income||0))}</td><td>${escapeHtml(money(spend))}</td><td>${escapeHtml(money(h.summary?.saving||0))}</td><td>${escapeHtml(money(h.summary?.remaining||0))}</td><td><button class="history-delete" type="button" data-delete-month="${escapeHtml(h.month)}">Delete</button></td></tr>`;}).join(''):'<tr><td colspan="6">No session months saved yet. Keep the current month in this session to compare it here.</td></tr>';
     renderTrend(rows);
   }
   function renderTrend(rows){
@@ -242,18 +258,20 @@
   }
   function savePrefs(){S.savePreferences({view:state.view,month:state.month,primaryPayFrequency:state.primaryPayFrequency,nextPayday:state.nextPayday,availableCash:state.availableCash,emergencyCurrent:state.emergencyCurrent,emergencyTargetMonths:state.emergencyTargetMonths,priority:state.priority,smartScenario:state.smartScenario,monthNote:state.monthNote,monthExceptional:state.monthExceptional,incomes:state.incomes,essential:state.essential,flexible:state.flexible,savings:state.savings});}
   function updateRow(target,rerender=false){
+    mycmTouched=true;
     const row=target.closest('.entry-row');if(!row)return;const kind=row.dataset.kind,id=row.dataset.id;const collection=kind==='income'?state.incomes:kind==='essential'?state.essential:kind==='flexible'?state.flexible:state.savings;const item=collection.find(x=>x.id===id);if(!item)return;const f=target.dataset.field;if(!f)return;if(target.type==='checkbox')item[f]=target.checked;else if(f==='amount')item[f]=Math.max(0,num(target.value));else item[f]=target.value;
     const eq=row.querySelector('[data-monthly-equivalent]');if(eq)eq.value=money(monthlyEquivalent(item.amount,item.frequency));
     if(rerender)renderRows();renderAll();savePrefs();
   }
   function addRow(kind){
+    mycmTouched=true;
     if(kind==='income')state.incomes.push({id:uid(),name:'Other income',amount:0,frequency:'monthly'});
     else if(kind==='saving')state.savings.push({id:uid(),name:'Other saving',amount:0,frequency:'monthly'});
     else state[kind].push({id:uid(),name:kind==='essential'?'Other essential expense':'Other flexible expense',amount:0,frequency:'monthly',protected:false,exceptional:false,dueDate:''});
     renderRows();renderAll();savePrefs();
   }
-  function deleteRow(btn){const row=btn.closest('.entry-row');if(!row)return;const kind=row.dataset.kind,id=row.dataset.id,key=kind==='income'?'incomes':kind==='saving'?'savings':kind;state[key]=state[key].filter(x=>x.id!==id);renderRows();renderAll();savePrefs();}
-  function renderAll(){renderSummary();renderInsights();}
+  function deleteRow(btn){mycmTouched=true;const row=btn.closest('.entry-row');if(!row)return;const kind=row.dataset.kind,id=row.dataset.id,key=kind==='income'?'incomes':kind==='saving'?'savings':kind;state[key]=state[key].filter(x=>x.id!==id);renderRows();renderAll();savePrefs();}
+  function renderAll(){renderSummary();renderInsights();offerMyCarrowmont();}
   function toast(msg){const t=byId('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2600);}
   function downloadJson(obj,filename){const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);}
 
@@ -275,14 +293,14 @@
   function reportModel(){const c=calculate();const smart=smartAnalysis();return {generatedAt:new Date(),region:L.getRegion(),country:L.getProfile().label,currency:L.getCurrency(),month:state.month,state:structuredClone(state),summary:c,smartSuggestions:smart,history:history.slice(-12)};}
   async function generateReport(){try{const R=window.CarrowmontBudgetPdfRenderer;if(!R)throw new Error('Budget report renderer is unavailable.');await R.download(reportModel());const st=byId('reportDownloadStatus');if(st)st.textContent='Report has been downloaded.';toast('Budget report generated.');}catch(err){console.error(err);toast('Could not generate the report.');}}
 
-  async function saveCurrentMonth(){try{state.month=els.budgetMonth.value||state.month;await S.saveMonth(snapshot());els.saveStatus.textContent=`Saved ${state.month} on this device.`;await refreshHistory();toast('Month saved locally.');}catch(err){console.error(err);els.saveStatus.textContent='Could not save this month.';}}
+  async function saveCurrentMonth(){try{state.month=els.budgetMonth.value||state.month;await S.saveMonth(snapshot());els.saveStatus.textContent=`Kept ${state.month} for this browser session.`;await refreshHistory();toast('Month kept for this session.');}catch(err){console.error(err);els.saveStatus.textContent='Could not save this month.';}}
   async function loadMonthIfSaved(month){try{const found=await S.getMonth(month);if(found){state=normalizeState(found);syncInputsFromState();renderRows();renderAll();toast(`Loaded saved month ${month}.`);}else{state.month=month;savePrefs();renderAll();}}catch(err){console.error(err);}}
 
   function bindEvents(){
-    document.addEventListener('input',e=>{if(e.target.closest('.entry-row'))return updateRow(e.target,false);const id=e.target.id;if(id==='availableCash')state.availableCash=num(e.target.value);else if(id==='emergencyCurrent')state.emergencyCurrent=Math.max(0,num(e.target.value));else if(id==='emergencyTargetMonths')state.emergencyTargetMonths=clamp(num(e.target.value),0,36);else if(id==='monthNote')state.monthNote=e.target.value;else return;renderAll();savePrefs();});
-    document.addEventListener('change',e=>{if(e.target.closest('.entry-row'))return updateRow(e.target,e.target.dataset.field==='frequency');const id=e.target.id;if(id==='budgetMonth'){loadMonthIfSaved(e.target.value);return;}if(id==='primaryPayFrequency'){state.primaryPayFrequency=e.target.value;if(!state.nextPayday){state.nextPayday=defaultNextPayday(state.primaryPayFrequency);els.nextPayday.value=state.nextPayday;}}else if(id==='nextPayday')state.nextPayday=e.target.value;else if(id==='priority')state.priority=e.target.value;else if(id==='monthExceptional')state.monthExceptional=e.target.checked;else if(id==='historyRange'){renderHistory();return;}else return;renderAll();savePrefs();});
+    document.addEventListener('input',e=>{if(e.target.closest('.entry-row'))return updateRow(e.target,false);mycmTouched=true;const id=e.target.id;if(id==='availableCash')state.availableCash=num(e.target.value);else if(id==='emergencyCurrent')state.emergencyCurrent=Math.max(0,num(e.target.value));else if(id==='emergencyTargetMonths')state.emergencyTargetMonths=clamp(num(e.target.value),0,36);else if(id==='monthNote')state.monthNote=e.target.value;else return;renderAll();savePrefs();});
+    document.addEventListener('change',e=>{if(e.target.closest('.entry-row'))return updateRow(e.target,e.target.dataset.field==='frequency');mycmTouched=true;const id=e.target.id;if(id==='budgetMonth'){loadMonthIfSaved(e.target.value);return;}if(id==='primaryPayFrequency'){state.primaryPayFrequency=e.target.value;if(!state.nextPayday){state.nextPayday=defaultNextPayday(state.primaryPayFrequency);els.nextPayday.value=state.nextPayday;}}else if(id==='nextPayday')state.nextPayday=e.target.value;else if(id==='priority')state.priority=e.target.value;else if(id==='monthExceptional')state.monthExceptional=e.target.checked;else if(id==='historyRange'){renderHistory();return;}else return;renderAll();savePrefs();});
     document.addEventListener('click',e=>{const scenario=e.target.closest('[data-smart-scenario]');if(scenario){state.smartScenario=scenario.dataset.smartScenario;renderInsights();savePrefs();return;}const add=e.target.closest('.add-row');if(add){addRow(add.dataset.kind);return;}const del=e.target.closest('.delete-row');if(del){deleteRow(del);return;}const hist=e.target.closest('[data-delete-month]');if(hist){if(confirm(`Delete saved month ${hist.dataset.deleteMonth}?`))S.deleteMonth(hist.dataset.deleteMonth).then(refreshHistory);return;}});
-    document.querySelectorAll('.view-btn').forEach(btn=>btn.addEventListener('click',()=>{state.view=btn.dataset.view;syncInputsFromState();renderAll();savePrefs();}));
+    document.querySelectorAll('.view-btn').forEach(btn=>btn.addEventListener('click',()=>{mycmTouched=true;state.view=btn.dataset.view;syncInputsFromState();renderAll();savePrefs();}));
     byId('saveMonthBtn').addEventListener('click',saveCurrentMonth);byId('refreshHistoryBtn').addEventListener('click',refreshHistory);byId('copyBtn').addEventListener('click',copySummary);byId('reportBtn').addEventListener('click',generateReport);
     if(els.debtPayoffHandoffBtn)els.debtPayoffHandoffBtn.addEventListener('click',stageDebtPayoffHandoff);
     byId('exportBtn').addEventListener('click',async()=>{try{downloadJson(await S.exportAll(),`carrowmont-budget-backup-${isoMonth(new Date())}.json`);toast('Budget backup exported.');}catch(err){console.error(err);toast('Could not export budget data.');}});
@@ -294,7 +312,7 @@
 
   async function init(){
     const pref=S.loadPreferences();state=normalizeState(pref||DEFAULTS);if(!state.primaryPayFrequency||!FREQ[state.primaryPayFrequency])state.primaryPayFrequency=L.getProfile().contributionFrequency||'monthly';if(!state.nextPayday)state.nextPayday=defaultNextPayday(state.primaryPayFrequency);
-    bindLocale();syncInputsFromState();renderRows();bindEvents();renderAll();await refreshHistory();
+    configureMyCarrowmontSave();bindLocale();syncInputsFromState();renderRows();bindEvents();renderAll();await refreshHistory();
   }
   init();
 })();

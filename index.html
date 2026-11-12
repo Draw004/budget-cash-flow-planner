@@ -16,7 +16,7 @@
   <meta name="twitter:card" content="summary" />
   <meta name="theme-color" content="#0e827a" />
   <link rel="stylesheet" href="styles.css?v=20261002.ss2" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebApplication","@id":"https://carrowmont.com/budget-cash-flow-planner/#app","name":"Carrowmont Budget Calculator & Monthly Cash Flow Planner","url":"https://carrowmont.com/budget-cash-flow-planner/","applicationCategory":"FinanceApplication","operatingSystem":"Any","description":"A privacy-first educational budget calculator and monthly cash-flow planner with pay-cycle views, local history and deterministic Smart Suggestions.","isPartOf":{"@id":"https://carrowmont.com/#website"},"publisher":{"@id":"https://carrowmont.com/#organization"}},{"@type":"BreadcrumbList","@id":"https://carrowmont.com/budget-cash-flow-planner/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Carrowmont","item":"https://carrowmont.com/"},{"@type":"ListItem","position":2,"name":"Tools","item":"https://carrowmont.com/tools.html"},{"@type":"ListItem","position":3,"name":"Budget Calculator & Monthly Cash Flow Planner","item":"https://carrowmont.com/budget-cash-flow-planner/"}]}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebApplication","@id":"https://carrowmont.com/budget-cash-flow-planner/#app","name":"Carrowmont Budget Calculator & Monthly Cash Flow Planner","url":"https://carrowmont.com/budget-cash-flow-planner/","applicationCategory":"FinanceApplication","operatingSystem":"Any","description":"A privacy-first educational budget calculator and monthly cash-flow planner with pay-cycle views, session-based comparisons and deterministic Smart Suggestions.","isPartOf":{"@id":"https://carrowmont.com/#website"},"publisher":{"@id":"https://carrowmont.com/#organization"}},{"@type":"BreadcrumbList","@id":"https://carrowmont.com/budget-cash-flow-planner/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Carrowmont","item":"https://carrowmont.com/"},{"@type":"ListItem","position":2,"name":"Tools","item":"https://carrowmont.com/tools.html"},{"@type":"ListItem","position":3,"name":"Budget Calculator & Monthly Cash Flow Planner","item":"https://carrowmont.com/budget-cash-flow-planner/"}]}]}</script>
 </head>
 <body>
 <header class="site-header">
@@ -57,8 +57,8 @@
     <div>
       <div class="eyebrow">UNDERSTAND TODAY'S MONEY</div>
       <h1>See what comes in, what goes out, and what is actually left.</h1>
-      <p class="lede">Build a practical monthly budget, translate irregular bills into reserves, compare pay cycles and keep a private month-by-month history on this device.</p>
-      <div class="chips"><span>Monthly + pay-cycle views</span><span>Local-first history</span><span>Irregular-bill reserves</span><span>No account required</span></div>
+      <p class="lede">Build a practical monthly budget, translate irregular bills into reserves and compare pay cycles. Guest month comparisons stay temporary unless you choose to keep a plan in My Carrowmont.</p>
+      <div class="chips"><span>Monthly + pay-cycle views</span><span>Session-only comparisons</span><span>Irregular-bill reserves</span><span>No account required</span></div>
     </div>
     <aside class="intro-card">
       <div class="eyebrow">THE CORE FLOW</div>
@@ -71,7 +71,7 @@
 <section class="privacy-strip">
   <div class="container privacy-inner">
     <div class="privacy-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 20 6v6c0 5-3.3 8-8 9-4.7-1-8-4-8-9V6l8-3z"/><path d="M9 12h6M10 12V9.8a2 2 0 0 1 4 0V12"/></svg></div>
-    <div><strong>Your budget stays on this device by default.</strong><span>Monthly history is stored locally in your browser. Export a backup if you want to move or protect your records.</span></div>
+    <div><strong>Guest budget work stays temporary.</strong><span>Month comparisons are kept only for this browser session. Choose Save to My Carrowmont when you want to keep a meaningful plan for later or another device.</span></div>
   </div>
 </section>
 
@@ -139,7 +139,7 @@
       </div>
 
       <div class="save-row">
-        <button class="btn btn-primary" id="saveMonthBtn" type="button">Save This Month</button>
+        <button class="btn btn-primary" id="saveMonthBtn" type="button">Keep This Month in Session</button>
         <span id="saveStatus" class="save-status" aria-live="polite"></span>
       </div>
     </section>
@@ -238,7 +238,7 @@
 
 <section class="history-section" id="history">
   <div class="container">
-    <div class="section-heading-row history-heading"><div><div class="eyebrow">YOUR LOCAL HISTORY</div><h2>Compare months without creating an account</h2><p>Saved records remain on this browser/device unless you export and restore them elsewhere.</p></div><div class="history-actions"><select id="historyRange" aria-label="History range"><option value="3">Last 3 months</option><option value="6">Last 6 months</option><option value="12">Last 12 months</option></select><button class="btn btn-secondary btn-small" id="refreshHistoryBtn" type="button">Refresh</button></div></div>
+    <div class="section-heading-row history-heading"><div><div class="eyebrow">THIS BROWSER SESSION</div><h2>Compare months while this session is open</h2><p>Session records are temporary. Use My Carrowmont when you want to keep a meaningful plan for later or access it on another device.</p></div><div class="history-actions"><select id="historyRange" aria-label="History range"><option value="3">Last 3 months</option><option value="6">Last 6 months</option><option value="12">Last 12 months</option></select><button class="btn btn-secondary btn-small" id="refreshHistoryBtn" type="button">Refresh</button></div></div>
     <div class="history-grid">
       <section class="history-card"><h3>Cash-flow trend</h3><div class="trend-chart" id="trendChart"></div></section>
       <section class="history-card"><h3>Month comparison</h3><div class="history-table-wrap"><table class="history-table"><thead><tr><th>Month</th><th>Income</th><th>Spending</th><th>Saving</th><th>Remaining</th><th></th></tr></thead><tbody id="historyTableBody"></tbody></table></div></section>
@@ -281,6 +281,7 @@
 <script src="smart-suggestions.js?v=20261002.ss2"></script>
 <script src="budget-pdf-renderer.js?v=20261002.ss2"></script>
 <script src="core.js?v=20261107.fre1b"></script>
+<script src="/assets/account/carrowmont-plan-save.js?v=20261112-b8b2"></script>
 <script src="app.js?v=20261107.fre1b"></script>
 <script src="shared-plan-bridge.js" data-carrowmont-tool="budget-cash-flow-planner"></script>
 <script src="analytics.js?v=20261031-cfwa1" data-carrowmont-tool="budget_cash_flow_planner" data-track-tool-open="true"></script>

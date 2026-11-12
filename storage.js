@@ -1,77 +1,26 @@
 (() => {
   'use strict';
 
-  const DB_NAME = 'carrowmont_budget_v1';
-  const DB_VERSION = 1;
-  const STORE = 'months';
-  const PREF_KEY = 'carrowmont_budget_preferences_v1';
+  const HISTORY_KEY = 'carrowmont_budget_session_months_v1';
+  const PREF_KEY = 'carrowmont_budget_session_preferences_v1';
+  const readJson=(key,fallback)=>{try{return JSON.parse(sessionStorage.getItem(key)||'null')??fallback;}catch(_){return fallback;}};
+  const writeJson=(key,value)=>{try{sessionStorage.setItem(key,JSON.stringify(value));return true;}catch(_){return false;}};
+  const readMonths=()=>{const value=readJson(HISTORY_KEY,{});return value&&typeof value==='object'&&!Array.isArray(value)?value:{};};
 
-  function openDb(){
-    return new Promise((resolve,reject)=>{
-      if(!('indexedDB' in window)){ reject(new Error('IndexedDB is not available in this browser.')); return; }
-      const req=indexedDB.open(DB_NAME,DB_VERSION);
-      req.onupgradeneeded=()=>{
-        const db=req.result;
-        if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE,{keyPath:'month'});
-      };
-      req.onsuccess=()=>resolve(req.result);
-      req.onerror=()=>reject(req.error||new Error('Could not open local budget storage.'));
-    });
-  }
-  async function tx(mode,fn){
-    const db=await openDb();
-    try{
-      return await new Promise((resolve,reject)=>{
-        const t=db.transaction(STORE,mode); const store=t.objectStore(STORE);
-        let result;
-        try{ result=fn(store); }catch(err){ reject(err); return; }
-        t.oncomplete=()=>resolve(result);
-        t.onerror=()=>reject(t.error||new Error('Budget storage operation failed.'));
-        t.onabort=()=>reject(t.error||new Error('Budget storage operation was cancelled.'));
-      });
-    }finally{ db.close(); }
-  }
   async function saveMonth(snapshot){
-    const copy=structuredClone(snapshot); copy.savedAt=new Date().toISOString();
-    await tx('readwrite',store=>store.put(copy)); return copy;
+    const copy=structuredClone(snapshot);copy.savedAt=new Date().toISOString();const months=readMonths();months[copy.month]=copy;if(!writeJson(HISTORY_KEY,months))throw new Error('Could not save this session month.');return copy;
   }
-  async function deleteMonth(month){ await tx('readwrite',store=>store.delete(month)); }
-  async function listMonths(){
-    const db=await openDb();
-    try{
-      return await new Promise((resolve,reject)=>{
-        const t=db.transaction(STORE,'readonly'); const req=t.objectStore(STORE).getAll();
-        req.onsuccess=()=>resolve((req.result||[]).sort((a,b)=>String(a.month).localeCompare(String(b.month))));
-        req.onerror=()=>reject(req.error||new Error('Could not read budget history.'));
-      });
-    }finally{db.close();}
-  }
-  async function getMonth(month){
-    const db=await openDb();
-    try{
-      return await new Promise((resolve,reject)=>{const req=db.transaction(STORE,'readonly').objectStore(STORE).get(month);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);});
-    }finally{db.close();}
-  }
-  function savePreferences(value){ try{localStorage.setItem(PREF_KEY,JSON.stringify(value));}catch(_){} }
-  function loadPreferences(){ try{return JSON.parse(localStorage.getItem(PREF_KEY)||'null');}catch(_){return null;} }
-  async function exportAll(){ return {schemaVersion:1,exportedAt:new Date().toISOString(),preferences:loadPreferences(),months:await listMonths()}; }
+  async function deleteMonth(month){const months=readMonths();delete months[month];writeJson(HISTORY_KEY,months);}
+  async function listMonths(){return Object.values(readMonths()).sort((a,b)=>String(a.month).localeCompare(String(b.month)));}
+  async function getMonth(month){return readMonths()[month]||null;}
+  function savePreferences(value){writeJson(PREF_KEY,value);}
+  function loadPreferences(){return readJson(PREF_KEY,null);}
+  async function exportAll(){return {schemaVersion:2,storageScope:'browser-session',exportedAt:new Date().toISOString(),preferences:loadPreferences(),months:await listMonths()};}
   async function importAll(payload){
-    if(!payload||payload.schemaVersion!==1||!Array.isArray(payload.months)) throw new Error('This is not a supported Carrowmont budget backup.');
-    const db=await openDb();
-    try{
-      await new Promise((resolve,reject)=>{
-        const t=db.transaction(STORE,'readwrite'); const store=t.objectStore(STORE);
-        payload.months.forEach(m=>{ if(m&&/^\d{4}-\d{2}$/.test(m.month||'')) store.put(m); });
-        t.oncomplete=resolve; t.onerror=()=>reject(t.error||new Error('Could not restore budget data.'));
-      });
-    }finally{db.close();}
-    if(payload.preferences) savePreferences(payload.preferences);
+    if(!payload||![1,2].includes(payload.schemaVersion)||!Array.isArray(payload.months))throw new Error('This is not a supported Carrowmont budget backup.');
+    const months={};payload.months.forEach(m=>{if(m&&/^\d{4}-\d{2}$/.test(m.month||''))months[m.month]=m;});writeJson(HISTORY_KEY,months);if(payload.preferences)savePreferences(payload.preferences);
   }
-  async function clearAll(){
-    const db=await openDb();
-    try{await new Promise((resolve,reject)=>{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).clear();t.oncomplete=resolve;t.onerror=()=>reject(t.error);});}
-    finally{db.close();}
-  }
+  async function clearAll(){try{sessionStorage.removeItem(HISTORY_KEY);sessionStorage.removeItem(PREF_KEY);}catch(_){}}
 
   window.CarrowmontBudgetStorage={saveMonth,deleteMonth,listMonths,getMonth,savePreferences,loadPreferences,exportAll,importAll,clearAll};
 })();
