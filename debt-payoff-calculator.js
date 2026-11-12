@@ -137,6 +137,21 @@
     else parts.push(`${a.months<s.months?'Highest-interest-first':'Smallest-debt-first'} reaches the modeled debt-free point ${duration(Math.abs(a.months-s.months))} sooner.`);
     return parts.join(' ');
   }
+  function applyMyCarrowmontPlan(input){
+    if(!input||typeof input!=='object')return;
+    if(input.region&&L.regions?.[input.region])L.setRegion(input.region,{syncCurrency:false});
+    if(input.currency&&L.currencies?.[input.currency])L.setCurrency(input.currency);
+    const next=(input.rows||[]).slice(0,10).map(r=>({id:uid(),label:r.label||'',balance:String(r.balance??''),annualRatePct:String(r.annualRatePct??''),minimumPayment:String(r.minimumPayment??'')}));
+    setRows(next.length?next:[blankRow(),blankRow()]);els.extra.value=String(input.extraMonthly??0);els.start.value=input.startMonth||'';updateBudgetLine();calculate();
+  }
+  function configureMyCarrowmontSave(){
+    const bridge=window.CarrowmontPlanSave;if(!bridge?.register)return;
+    bridge.register({journey:'debt-payoff',toolPath:'/budget-cash-flow-planner/debt-payoff-calculator.html',anchor:'#resultSummaryCard',
+      getPlan(){if(!result?.startingTotalDebt||result.startingTotalDebt<=0)return null;const debts=rowData().filter(r=>r.balance>0);return {label:'Debt payoff plan',scenario:{input:{rows:debts,extraMonthly:num(els.extra.value),startMonth:els.start.value,region:L.getRegion(),currency:L.getCurrency()},summary:{startingDebt:result.startingTotalDebt,monthlyBudget:result.totalMonthlyBudget,avalancheMonths:result.avalanche?.months,snowballMonths:result.snowball?.months}},profileFacts:{'debt.balance':{value:result.startingTotalDebt,unit:L.getCurrency(),source:'Debt Payoff'},'debt.monthlyPayments':{value:result.totalMonthlyBudget,unit:L.getCurrency(),source:'Debt Payoff'},'debt.highestAprPct':{value:Math.max(0,...debts.map(d=>num(d.annualRatePct))),unit:'pct',source:'Debt Payoff'}}};},
+      applyPlan:scenario=>applyMyCarrowmontPlan(scenario?.input)
+    });
+  }
+
   function renderResult(){
     const a=result.avalanche,s=result.snowball;
     els.resultLead.textContent='These estimates use the same debts and total monthly payment for both methods.';
@@ -144,7 +159,7 @@
     els.avalancheMonths.textContent=methodDuration(a); els.avalancheInterest.textContent=money(a.totalInterest); els.avalancheFirst.textContent=methodFirst(a); els.avalancheDate.textContent=methodDate(a);
     els.snowballMonths.textContent=methodDuration(s); els.snowballInterest.textContent=money(s.totalInterest); els.snowballFirst.textContent=methodFirst(s); els.snowballDate.textContent=methodDate(s);
     els.comparison.textContent=comparisonText(); els.avalancheExtra.textContent=extraImpact(a,result.zeroExtra.avalanche); els.snowballExtra.textContent=extraImpact(s,result.zeroExtra.snowball);
-    renderPayoffTable(); renderTimeline(); renderChart(); els.report.disabled=false; els.copy.disabled=false;
+    renderPayoffTable(); renderTimeline(); renderChart(); els.report.disabled=false; els.copy.disabled=false; window.CarrowmontPlanSave?.offer?.('debt-payoff');
   }
   function renderPayoffTable(){
     const blocks=[['Highest interest first',result.avalanche],['Smallest debt first',result.snowball]];
@@ -206,5 +221,5 @@
   els.applyHandoff.addEventListener('click',()=>{const e=handoffEntry();if(!e)return renderBudgetHandoff();els.extra.value=String(e.value);updateBudgetLine();clearHandoff();els.status.textContent='Budget amount applied as the extra monthly payment. Review it before calculating.';}); els.dismissHandoff.addEventListener('click',clearHandoff);
   window.addEventListener('carrowmont:planchange',e=>{if((e.detail?.keys||[]).some(k=>k==='*'||k==='assumptions.possibleMonthlyDebtExtra'))renderBudgetHandoff();});
 
-  rows=[blankRow(),blankRow()]; bindLocale(); renderRows(); updateBudgetLine(); renderBudgetHandoff(); resetResults();
+  rows=[blankRow(),blankRow()]; configureMyCarrowmontSave(); bindLocale(); renderRows(); updateBudgetLine(); renderBudgetHandoff(); resetResults();
 })();
