@@ -150,6 +150,21 @@
     };
   }
 
+  function paymentGuard(rawDebts, extraMonthlyPayment = 0) {
+    const debts = normalizeDebts(rawDebts);
+    const extra = Math.max(0, finite(extraMonthlyPayment) ? n(extraMonthlyPayment) : 0);
+    const baseMinimumBudget = debts.reduce((sum, debt) => sum + debt.minimumPayment, 0);
+    const totalMonthlyBudget = baseMinimumBudget + extra;
+    const firstMonthInterest = debts.reduce((sum, debt) => sum + debt.balance * ((debt.annualRatePct / 100) / 12), 0);
+    return {
+      ok: debts.length > 0 && totalMonthlyBudget > firstMonthInterest + EPSILON,
+      firstMonthInterest,
+      baseMinimumBudget,
+      extraMonthlyPayment: extra,
+      totalMonthlyBudget
+    };
+  }
+
   function warningsFor(debts) {
     return normalizeDebts(debts).filter(debt => debt.minimumPayment <= debt.balance * ((debt.annualRatePct / 100) / 12) + EPSILON).map(debt => ({
       id: debt.id,
@@ -250,8 +265,14 @@
     r = comparePlans([{ balance:2500,annualRatePct:9,minimumPayment:100 }],25);
     add('one debt method parity', close(r.avalanche.totalInterest,r.snowball.totalInterest,0.001) && r.avalanche.months === r.snowball.months);
 
+    let guard = paymentGuard([{ balance:1250000,annualRatePct:10.75,minimumPayment:22300 }],5000);
+    add('payment guard allows amortizing payment', guard.ok && guard.totalMonthlyBudget === 27300 && guard.firstMonthInterest < guard.totalMonthlyBudget);
+
+    guard = paymentGuard([{ balance:1250000,annualRatePct:1075,minimumPayment:22300 }],5000);
+    add('payment guard blocks explosive rate scenario', !guard.ok && guard.firstMonthInterest > guard.totalMonthlyBudget);
+
     return fixtures;
   }
 
-  window.CarrowmontDebtPayoffCore = { MAX_MONTHS, normalizeDebts, simulateStrategy, comparePlans, runFixtures };
+  window.CarrowmontDebtPayoffCore = { MAX_MONTHS, normalizeDebts, simulateStrategy, paymentGuard, comparePlans, runFixtures };
 })();
