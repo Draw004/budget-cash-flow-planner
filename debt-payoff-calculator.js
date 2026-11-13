@@ -9,6 +9,7 @@
   let rows = [];
   let result = null;
   let rowSeq = 0;
+  let confirmedHighRateSignature = '';
 
   const els = {
     rows:$('debtRows'), add:$('addDebtBtn'), load:$('loadExampleBtn'), reset:$('resetBtn'), extra:$('extraMonthly'), start:$('startMonth'),
@@ -38,7 +39,7 @@
   function rowTerms(){
     const r=L.getRegion();
     return {
-      rate: ['US','CA'].includes(r) ? 'Interest rate (APR)' : 'Interest rate',
+      rate: 'Annual interest rate (%)',
       minimum: ['AU','NZ'].includes(r) ? 'Minimum monthly repayment' : 'Minimum monthly payment'
     };
   }
@@ -49,7 +50,7 @@
     return `<div class="debt-row" data-id="${esc(row.id)}">
       <label><span>Debt name (optional)</span><input data-field="label" maxlength="50" value="${esc(row.label)}" placeholder="Example: Credit card"></label>
       <label><span>How much do you owe?</span><div class="money-input"><span class="row-currency">${esc(L.currencySymbol())}</span><input data-field="balance" type="number" min="0" step="100" value="${esc(row.balance)}" aria-label="Debt ${index+1} balance"></div></label>
-      <label><span>${esc(t.rate)}</span><div class="input-suffix"><input data-field="annualRatePct" type="number" min="0" step="0.01" value="${esc(row.annualRatePct)}" aria-label="Debt ${index+1} interest rate"><span>%</span></div></label>
+      <label><span>${esc(t.rate)}</span><div class="input-suffix"><input data-field="annualRatePct" type="number" min="0" step="0.01" value="${esc(row.annualRatePct)}" aria-label="Debt ${index+1} annual interest rate"><span>%</span></div><small class="debt-field-help">Example: enter 10.75 for 10.75%.</small></label>
       <label><span>${esc(t.minimum)}</span><div class="money-input"><span class="row-currency">${esc(L.currencySymbol())}</span><input data-field="minimumPayment" type="number" min="0" step="10" value="${esc(row.minimumPayment)}" aria-label="Debt ${index+1} minimum payment"></div></label>
       <button class="btn btn-secondary remove-debt" type="button" aria-label="Remove debt ${index+1}" ${rows.length<=1?'disabled':''}>Remove</button>
     </div>`;
@@ -90,12 +91,32 @@
     els.budgetLine.textContent=`Entered minimums: ${money(mins)} · Extra: ${money(extra)} · Total modeled monthly debt payment: ${money(mins+extra)}`;
   }
   function clearMessages(){ els.validation.hidden=true; els.warning.hidden=true; els.status.textContent=''; }
+  function highRateSignature(debts){return debts.filter(d=>d.annualRatePct>100).map(d=>`${d.id}:${d.annualRatePct}`).sort().join('|');}
+  function renderPaymentGuardFailure(guard,debts){
+    result=null;resetResults();
+    const starting=debts.reduce((sum,d)=>sum+d.balance,0);
+    els.starting.textContent=money(starting);els.monthlyBudget.textContent=money(guard.totalMonthlyBudget);
+    els.resultLead.textContent='This payment will not reduce your debt under the interest rates entered.';
+    els.avalancheMonths.textContent='Payment does not reduce debt';els.snowballMonths.textContent='Payment does not reduce debt';
+    els.comparison.textContent=`First-month interest is about ${money(guard.firstMonthInterest)}, but your total monthly debt payment is ${money(guard.totalMonthlyBudget)}. Increase the payment or check the interest rate.`;
+    els.warning.innerHTML=`<strong>Check these entries:</strong> Your payment is not enough to reduce this debt at the interest rates entered. First-month interest is about ${esc(money(guard.firstMonthInterest))}, but your total monthly payment is ${esc(money(guard.totalMonthlyBudget))}. Increase the payment or check the interest rate.`;
+    els.warning.hidden=false;
+  }
   function calculate(){
     clearMessages();
     const v=validate();
     if(v.errors.length){els.validation.innerHTML=v.errors.map(x=>`<div>${esc(x)}</div>`).join('');els.validation.hidden=false;result=null;resetResults();return;}
     const debts=validDebts();
-    result=C.comparePlans(debts,Math.max(0,num(els.extra.value)));
+    const suspicious=highRateSignature(debts);
+    if(suspicious && suspicious!==confirmedHighRateSignature){
+      const labels=debts.filter(d=>d.annualRatePct>100).map(d=>`${d.label||'Debt'}: ${rate(d.annualRatePct)}`).join(' · ');
+      els.validation.innerHTML=`<div><strong>Review the annual interest rate.</strong> ${esc(labels)} is above 100% a year. If you meant 10.75%, enter 10.75 — not 1075.</div><button class="btn btn-secondary debt-confirm-rate" type="button" data-confirm-high-rate="${esc(suspicious)}">Use the entered rate anyway</button>`;
+      els.validation.hidden=false;result=null;resetResults();return;
+    }
+    const extra=Math.max(0,num(els.extra.value));
+    const guard=C.paymentGuard(debts,extra);
+    if(!guard.ok){renderPaymentGuardFailure(guard,debts);return;}
+    result=C.comparePlans(debts,extra);
     if(result.warnings.length){els.warning.innerHTML=`<strong>Check these entries:</strong> ${result.warnings.map(w=>esc(w.message)).join(' ')}`;els.warning.hidden=false;}
     renderResult();
   }
@@ -156,10 +177,10 @@
     const a=result.avalanche,s=result.snowball;
     els.resultLead.textContent='These estimates use the same debts and total monthly payment for both methods.';
     els.starting.textContent=money(result.startingTotalDebt); els.monthlyBudget.textContent=money(result.totalMonthlyBudget);
-    els.avalancheMonths.textContent=methodDuration(a); els.avalancheInterest.textContent=money(a.totalInterest); els.avalancheFirst.textContent=methodFirst(a); els.avalancheDate.textContent=methodDate(a);
-    els.snowballMonths.textContent=methodDuration(s); els.snowballInterest.textContent=money(s.totalInterest); els.snowballFirst.textContent=methodFirst(s); els.snowballDate.textContent=methodDate(s);
+    els.avalancheMonths.textContent=methodDuration(a); els.avalancheInterest.textContent=a.status==='paid_off'?money(a.totalInterest):'Not shown — balance remains'; els.avalancheFirst.textContent=methodFirst(a); els.avalancheDate.textContent=methodDate(a);
+    els.snowballMonths.textContent=methodDuration(s); els.snowballInterest.textContent=s.status==='paid_off'?money(s.totalInterest):'Not shown — balance remains'; els.snowballFirst.textContent=methodFirst(s); els.snowballDate.textContent=methodDate(s);
     els.comparison.textContent=comparisonText(); els.avalancheExtra.textContent=extraImpact(a,result.zeroExtra.avalanche); els.snowballExtra.textContent=extraImpact(s,result.zeroExtra.snowball);
-    renderPayoffTable(); renderTimeline(); renderChart(); els.report.disabled=false; els.copy.disabled=false; window.CarrowmontPlanSave?.offer?.('debt-payoff');
+    renderPayoffTable(); renderTimeline(); renderChart(); const complete=a.status==='paid_off'&&s.status==='paid_off';els.report.disabled=!complete; els.copy.disabled=false; if(complete)window.CarrowmontPlanSave?.offer?.('debt-payoff');
   }
   function renderPayoffTable(){
     const blocks=[['Highest interest first',result.avalanche],['Smallest debt first',result.snowball]];
@@ -172,7 +193,7 @@
   }
   function renderTimeline(){
     const max=Math.max(result.avalanche.monthly.length,result.snowball.monthly.length); const out=[];
-    for(let i=0;i<max;i+=1){const a=result.avalanche.monthly[i],s=result.snowball.monthly[i];out.push(`<tr><td>${i+1}${dateForMonth(i+1)!=='—'?` · ${esc(dateForMonth(i+1))}`:''}</td><td>${esc(money(a?.closingBalance??0))}</td><td>${esc(money(a?.cumulativeInterest??result.avalanche.totalInterest))}</td><td>${esc(money(s?.closingBalance??0))}</td><td>${esc(money(s?.cumulativeInterest??result.snowball.totalInterest))}</td></tr>`);}
+    for(let i=0;i<max;i+=1){const a=result.avalanche.monthly[i],s=result.snowball.monthly[i];const ai=result.avalanche.status==='paid_off'?money(a?.cumulativeInterest??result.avalanche.totalInterest):'—';const si=result.snowball.status==='paid_off'?money(s?.cumulativeInterest??result.snowball.totalInterest):'—';out.push(`<tr><td>${i+1}${dateForMonth(i+1)!=='—'?` · ${esc(dateForMonth(i+1))}`:''}</td><td>${esc(money(a?.closingBalance??0))}</td><td>${esc(ai)}</td><td>${esc(money(s?.closingBalance??0))}</td><td>${esc(si)}</td></tr>`);}
     els.timelineBody.innerHTML=out.join('');
   }
   function svgPath(points,maxX,maxY,width=860,height=240,pad=28){
@@ -181,13 +202,17 @@
   function renderChart(){
     const start=result.startingTotalDebt||1; const maxMonths=Math.max(1,result.avalanche.monthly.length,result.snowball.monthly.length);
     const a=[{x:0,y:start},...result.avalanche.monthly.map(x=>({x:x.month,y:x.closingBalance}))]; const s=[{x:0,y:start},...result.snowball.monthly.map(x=>({x:x.month,y:x.closingBalance}))];
-    const pa=svgPath(a,maxMonths,start),ps=svgPath(s,maxMonths,start); const fmt=v=>L.formatCompactMoney(v,{maximumFractionDigits:1});
-    els.chart.innerHTML=`<title id="chartTitle">Debt balance over time</title><desc id="chartDesc">Highest-interest-first and smallest-debt-first total remaining debt over ${maxMonths} modeled months.</desc><line x1="28" y1="268" x2="872" y2="268" stroke="#cfdae0"/><line x1="28" y1="28" x2="28" y2="268" stroke="#cfdae0"/><text x="28" y="20" font-size="12" fill="#53697d">${esc(fmt(start))}</text><text x="28" y="288" font-size="12" fill="#53697d">Month 0</text><text x="820" y="288" font-size="12" fill="#53697d">Month ${maxMonths}</text><path d="${pa}" fill="none" stroke="#0e827a" stroke-width="4"/><path d="${ps}" fill="none" stroke="#4e638f" stroke-width="3" stroke-dasharray="8 6"/>`;
+    const maxBalance=Math.max(start,...a.map(x=>x.y),...s.map(x=>x.y),1);
+    const pa=svgPath(a,maxMonths,maxBalance),ps=svgPath(s,maxMonths,maxBalance); const fmt=v=>L.formatCompactMoney(v,{maximumFractionDigits:1});
+    els.chart.innerHTML=`<title id="chartTitle">Debt balance over time</title><desc id="chartDesc">Highest-interest-first and smallest-debt-first total remaining debt over ${maxMonths} modeled months.</desc><line x1="28" y1="268" x2="872" y2="268" stroke="#cfdae0"/><line x1="28" y1="28" x2="28" y2="268" stroke="#cfdae0"/><text x="28" y="20" font-size="12" fill="#53697d">${esc(fmt(maxBalance))}</text><text x="28" y="288" font-size="12" fill="#53697d">Month 0</text><text x="820" y="288" font-size="12" fill="#53697d">Month ${maxMonths}</text><path d="${pa}" fill="none" stroke="#0e827a" stroke-width="4"/><path d="${ps}" fill="none" stroke="#4e638f" stroke-width="3" stroke-dasharray="8 6"/>`;
   }
   function summaryText(){
     if(!result) return '';
     const interestDiff=result.snowball.totalInterest-result.avalanche.totalInterest;
-    return ['Carrowmont Debt Payoff Calculator Summary',`Country / currency: ${L.getProfile().label} · ${L.getCurrency()}`,`Total starting debt: ${money(result.startingTotalDebt)}`,`Total monthly debt payment: ${money(result.totalMonthlyBudget)}`,`Extra monthly payment: ${money(result.inputs.extraMonthlyPayment)}`,'',`Pay highest-interest debt first: ${methodDuration(result.avalanche)} · total interest ${money(result.avalanche.totalInterest)}`,`Pay smallest debt first: ${methodDuration(result.snowball)} · total interest ${money(result.snowball.totalInterest)}`,`Interest difference: ${money(Math.abs(interestDiff))}`,`First-debt timing: highest interest first ${result.avalanche.firstPayoff?.month??'—'} month(s); smallest debt first ${result.snowball.firstPayoff?.month??'—'} month(s)`,'','Assumes fixed entered rates and fixed entered minimum payments in a monthly planning model. Lender statements can differ.','Educational planning illustration, not individualized financial advice.'].join('\n');
+    const aInterest=result.avalanche.status==='paid_off'?money(result.avalanche.totalInterest):'not shown because a balance remains after 50 years';
+    const sInterest=result.snowball.status==='paid_off'?money(result.snowball.totalInterest):'not shown because a balance remains after 50 years';
+    const interestLine=result.avalanche.status==='paid_off'&&result.snowball.status==='paid_off'?`Interest difference: ${money(Math.abs(interestDiff))}`:'Interest difference: not shown because at least one method does not fully repay within 50 years';
+    return ['Carrowmont Debt Payoff Calculator Summary',`Country / currency: ${L.getProfile().label} · ${L.getCurrency()}`,`Total starting debt: ${money(result.startingTotalDebt)}`,`Total monthly debt payment: ${money(result.totalMonthlyBudget)}`,`Extra monthly payment: ${money(result.inputs.extraMonthlyPayment)}`,'',`Pay highest-interest debt first: ${methodDuration(result.avalanche)} · total interest ${aInterest}`,`Pay smallest debt first: ${methodDuration(result.snowball)} · total interest ${sInterest}`,interestLine,`First-debt timing: highest interest first ${result.avalanche.firstPayoff?.month??'—'} month(s); smallest debt first ${result.snowball.firstPayoff?.month??'—'} month(s)`,'','Assumes fixed entered rates and fixed entered minimum payments in a monthly planning model. Lender statements can differ.','Educational planning illustration, not individualized financial advice.'].join('\n');
   }
   async function copySummary(){
     if(!result)return;try{await navigator.clipboard.writeText(summaryText());els.status.textContent='Summary copied.';}catch(_){els.status.textContent='Could not copy automatically. Your browser may block clipboard access.';}
@@ -216,6 +241,7 @@
   function reset(){setRows([blankRow(),blankRow()]);els.extra.value='0';els.start.value='';result=null;clearMessages();resetResults();}
 
   els.rows.addEventListener('input',e=>{if(e.target.dataset.field)syncRowInput(e.target);});
+  els.validation.addEventListener('click',e=>{const btn=e.target.closest('[data-confirm-high-rate]');if(!btn)return;confirmedHighRateSignature=btn.dataset.confirmHighRate||'';calculate();});
   els.rows.addEventListener('click',e=>{const btn=e.target.closest('.remove-debt');if(!btn||rows.length<=1)return;rows=rows.filter(r=>r.id!==btn.closest('.debt-row').dataset.id);renderRows();updateBudgetLine();});
   els.add.addEventListener('click',()=>{if(rows.length<10){rows.push(blankRow());renderRows();}}); els.extra.addEventListener('input',updateBudgetLine); els.load.addEventListener('click',loadExample); els.reset.addEventListener('click',reset); els.calculate.addEventListener('click',calculate); els.copy.addEventListener('click',copySummary); els.report.addEventListener('click',generateReport);
   els.applyHandoff.addEventListener('click',()=>{const e=handoffEntry();if(!e)return renderBudgetHandoff();els.extra.value=String(e.value);updateBudgetLine();clearHandoff();els.status.textContent='Budget amount applied as the extra monthly payment. Review it before calculating.';}); els.dismissHandoff.addEventListener('click',clearHandoff);
