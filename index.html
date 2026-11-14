@@ -15,7 +15,7 @@
   <meta property="og:url" content="https://carrowmont.com/budget-cash-flow-planner/" />
   <meta name="twitter:card" content="summary" />
   <meta name="theme-color" content="#0e827a" />
-  <link rel="stylesheet" href="styles.css?v=20261002.ss2" />
+  <link rel="stylesheet" href="styles.css?v=20261114-fre8h" />
   <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebApplication","@id":"https://carrowmont.com/budget-cash-flow-planner/#app","name":"Carrowmont Budget Calculator & Monthly Cash Flow Planner","url":"https://carrowmont.com/budget-cash-flow-planner/","applicationCategory":"FinanceApplication","operatingSystem":"Any","description":"A privacy-first educational budget calculator and monthly cash-flow planner with pay-cycle views, session-based comparisons and deterministic Smart Suggestions.","isPartOf":{"@id":"https://carrowmont.com/#website"},"publisher":{"@id":"https://carrowmont.com/#organization"}},{"@type":"BreadcrumbList","@id":"https://carrowmont.com/budget-cash-flow-planner/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Carrowmont","item":"https://carrowmont.com/"},{"@type":"ListItem","position":2,"name":"Tools","item":"https://carrowmont.com/tools.html"},{"@type":"ListItem","position":3,"name":"Budget Calculator & Monthly Cash Flow Planner","item":"https://carrowmont.com/budget-cash-flow-planner/"}]}]}</script>
 </head>
 <body>
@@ -96,11 +96,11 @@
       </div>
 
       <div class="plan-meta-grid">
-        <label class="field"><span>Budget month</span><input id="budgetMonth" type="month" /></label>
+        <label class="field"><span>Budget month</span><input id="budgetMonth" type="month" /><small>Choose the month you want to plan.</small></label>
         <label class="field"><span>Primary pay frequency</span><select id="primaryPayFrequency">
           <option value="weekly">Weekly</option><option value="biweekly">Every 2 Weeks</option><option value="semimonthly">Twice Monthly</option><option value="fourweekly">Every 4 Weeks</option><option value="monthly">Monthly</option><option value="irregular">Irregular / Variable</option>
         </select><small>Used for the pay-cycle view. Each income row can still have its own frequency.</small></label>
-        <label class="field paycycle-only hidden"><span>Next payday</span><input id="nextPayday" type="date" /></label>
+        <label class="field paycycle-only hidden"><span>Next payday</span><input id="nextPayday" type="date" /><small>Used to place income and bills within the selected pay cycle.</small></label>
         <label class="field paycycle-only hidden"><span>Available cash today</span><div class="money-input"><span class="currency-prefix">₹</span><input id="availableCash" type="number" min="0" step="100" value="0" /></div><small>Optional. Used to compare upcoming bills with cash already available before payday.</small></label>
       </div>
 

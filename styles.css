@@ -171,3 +171,11 @@
   }
 }
 
+
+/* FRE8H budget setup alignment - 2026-11-14 */
+.plan-meta-grid{align-items:start}
+.plan-meta-grid .field{grid-template-rows:auto 42px minmax(32px,auto);align-content:start}
+.plan-meta-grid .field>input,.plan-meta-grid .field>select,.plan-meta-grid .field>.money-input{height:42px;min-height:42px}
+.plan-meta-grid .money-input input{height:40px;min-height:40px}
+.plan-meta-grid .field small{min-height:32px}
+@media(max-width:720px){.plan-meta-grid .field{grid-template-rows:auto 42px auto}.plan-meta-grid .field small{min-height:0}}
