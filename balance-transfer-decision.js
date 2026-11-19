@@ -32,6 +32,7 @@
       into('btSavingsDetail','Results are hidden until the entered terms are valid.');
       into('btPromoNote','Enter complete terms to model the promotional deadline.');
       $('btWarnings').replaceChildren();
+      const caution = $('btCaution'); if (caution) { caution.hidden = true; caution.textContent = ''; }
       return;
     }
     error.textContent = '';
@@ -48,6 +49,11 @@
     into('btPromoNote', result.inputs.introMonths
       ? 'This payment would clear the modeled transfer by the end of the offer; it may be higher than your current budget.'
       : 'The standard rate begins immediately because no promotional months were entered.');
+    const caution = $('btCaution');
+    if (caution) {
+      caution.hidden = !(comparison.comparable && result.inputs.introMonths > 0 && transfer.atIntroEnd > 0.005);
+      caution.textContent = caution.hidden ? '' : `Important: ${fmt(transfer.atIntroEnd)} would still be owed when the promotional rate ends.`;
+    }
     if (comparison.comparable) {
       const diff = comparison.savings;
       const abs = fmt(Math.abs(diff));
@@ -85,13 +91,9 @@
       .forEach(([name,v]) => { fields[name].value = String(v); });
     render();
   });
-  const panel = document.getElementById('balance-transfer');
-  function revealRequestedSection() {
-    if (location.hash === '#balance-transfer') panel.open = true;
-  }
-  window.addEventListener('hashchange', revealRequestedSection);
-  ['regionSelect','currencySelect'].forEach(id => document.getElementById(id)?.addEventListener('change',render));
-  panel.addEventListener('toggle',()=>{ if(panel.open) render(); });
-  revealRequestedSection();
-  if (panel.open) render();
+  // Calculation is activated by the shared decision-mode controller, never by page loading.
+  window.addEventListener('carrowmont:transfer-mode', render);
+  ['regionSelect','currencySelect'].forEach(id => document.getElementById(id)?.addEventListener('change', () => {
+    if (!document.getElementById('balance-transfer').hidden) render();
+  }));
 })();

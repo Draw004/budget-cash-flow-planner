@@ -1,0 +1,68 @@
+/* Carrowmont Credit Card Decisions. Reuses the approved tool typography, locale and card styling. */
+#localeSummary{min-height:42px;border-radius:999px;gap:9px;padding:9px 15px}
+.cc-mode-selector{padding:18px 0 0;background:var(--bg);scroll-margin-top:90px}
+.cc-mode-header{margin-bottom:14px}
+.cc-mode-header h2{margin:0;font-size:clamp(19px,2.2vw,25px);line-height:1.2}
+.cc-mode-tabs{display:flex;gap:8px;padding:5px;background:#e6f2f2;border:1px solid #d4e5e6;border-radius:14px;width:max-content;max-width:100%}
+.cc-mode-tabs [role="tab"]{appearance:none;border:0;border-radius:10px;min-height:44px;padding:10px 18px;background:transparent;color:#31546a;cursor:pointer;font-weight:850;text-align:center}
+.cc-mode-tabs [role="tab"][aria-selected="true"]{background:#fff;color:#08786e;box-shadow:0 1px 7px rgba(16,41,69,.12)}
+.cc-mode-tabs [role="tab"]:focus-visible{outline:3px solid #56aca4;outline-offset:2px}
+.cc-decision-panel{padding-top:17px;padding-bottom:22px;scroll-margin-top:96px}
+.cc-decision-panel[hidden],.cc-method[hidden]{display:none!important}
+.cc-decision-panel .cc-card{min-width:0}
+.cc-decision-panel .cc-grid{gap:16px}
+.cc-decision-panel .cc-actions{margin-top:15px;gap:8px}
+.cc-decision-panel .cc-actions .btn{font-size:13px}
+.cc-related-links{display:flex;align-items:center;flex-wrap:wrap;gap:8px 17px;padding-top:14px;font-size:13px;color:#536e7d}
+.cc-related-links a{color:#08776e;font-weight:850;text-underline-offset:3px}
+.cc-method-wrap{background:#fff;border-top:1px solid #dfebee;padding:18px 0 38px;scroll-margin-top:94px}
+.cc-method-details{border:1px solid #dbe7eb;border-radius:14px;overflow:hidden;background:#fbfdfd}
+.cc-method-details>summary{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:17px 20px;cursor:pointer;list-style:none;font-size:16px;font-weight:850;color:#183a55}
+.cc-method-details>summary::-webkit-details-marker{display:none}
+.cc-method-content{border-top:1px solid #e0e9ed;padding:8px 0}
+.cc-method-content .cc-method{padding:16px 0 20px;background:transparent}
+.cc-method-content .cc-method h2{margin:0 0 16px;font-size:21px}
+.cc-method-grid>div{background:#fff}
+.bt-shell{background:var(--bg)}
+.bt-input-card .cc-fields{gap:12px;margin-top:8px}
+.bt-fieldset{margin-top:10px;padding:13px 0 7px}
+.bt-fieldset legend{font-size:14px}
+.bt-summary-amount{margin-top:11px}
+.bt-promobox{margin-top:12px}
+.bt-caution{margin-top:10px;border-left:3px solid #b47a27;padding:8px 12px;background:#fff8eb;color:#6d4a1b!important;font-size:13px;line-height:1.45}
+.intro{padding-top:24px;padding-bottom:24px}
+.intro h1{font-size:clamp(32px,4vw,50px);line-height:1.09}
+.intro .lede{font-size:16px;margin:12px 0}
+.privacy-inner{padding:10px 0}
+/* Preserve the choice and conclusion together, not both whole calculators stacked. */
+@media(max-width:900px){
+ .cc-decision-panel .cc-grid{grid-template-columns:minmax(0,1fr)}
+ .cc-method-details>summary{padding:15px}
+}
+@media(max-width:650px){
+ .cc-mode-selector{padding-top:13px}
+ .cc-mode-tabs{width:100%;gap:4px}
+ .cc-mode-tabs [role="tab"]{flex:1;min-width:0;padding:10px 7px;font-size:12.5px}
+ .cc-decision-panel .cc-card{padding:16px}
+ .intro{padding:17px 0 20px}
+ .intro h1{font-size:clamp(30px,8.3vw,39px)}
+ .intro-card{padding:16px}
+ .cc-decision-panel .cc-actions .btn{flex:1 1 140px}
+ .cc-related-links{font-size:12px;line-height:1.6}
+ .bt-summary-amount strong{font-size:24px}
+ .bt-promobox{padding:12px}
+}
+@media print{
+ @page{margin:12mm}
+ html{scroll-behavior:auto}
+ .site-header,.intro,.privacy-strip,.cc-mode-selector,.cc-related-links,.site-footer,.cc-method-wrap,.bt-actions,.cc-actions,.bt-follow-link{display:none!important}
+ .cc-decision-panel{display:block;break-before:auto;padding:0;background:#fff}
+ .cc-decision-panel[hidden],.cc-method[hidden]{display:none!important}
+ .cc-decision-panel .cc-grid{display:block}
+ .cc-card,.bt-promobox,.bt-summary-amount{box-shadow:none!important;break-inside:auto;border-color:#cddde2}
+ .cc-card{padding:12px!important;margin:0 0 12px}
+ .cc-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .cc-fields .wide{grid-column:1/-1}
+ .cc-results,.bt-comparison-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body{background:#fff;color:#102945}
+}
